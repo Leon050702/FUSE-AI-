@@ -1,0 +1,30 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Node
+node_modules/
+*.log
+npm-debug.log*
+
+# Env / secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Backend artifacts (mirrors backend/.gitignore for safety)
+backend/.env
+backend/fuse.db
+backend/fuse.db-journal
+backend/fuse.db.lock/
+
+# Claude Code workspace
+.claude/
+
+# Local reference files (not part of the app)
+*.docx
+*.pdf
+~$*
