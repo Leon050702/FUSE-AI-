@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART FUSE - Final High-Fidelity Prototype</title>
+    <!-- html2pdf for report generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Stylesheets (split into manageable sections) -->
+    <link rel="stylesheet" href="css/styles.css?v=25">
+    <link rel="stylesheet" href="css/dashboard.css?v=30">
+    <link rel="stylesheet" href="css/ai-modal.css?v=30">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body>
+    <!-- ============================================
+         GOOEY FILTER — fuses the scattering particles into one liquid
+         shape during the AI-modal open animation. Borrowed from the
+         gooey-blob reference. Hidden SVG; CSS references it via url(#goo).
+         ============================================ -->
+    <svg width="0" height="0" style="position:absolute;" aria-hidden="true">
+      <defs>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="11" result="blur"/>
+          <feColorMatrix in="blur" mode="matrix"
+                         values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="goo"/>
+          <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+        </filter>
+      </defs>
+    </svg>
+
+    <!-- ============================================
+         AUTH OVERLAY — login / register (full-screen)
+         Hidden by js/auth.js after a successful login.
+         ============================================ -->
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="logo"><span>fUSe</span> Smart FUSE</div>
+                <div class="sub">FUNCTIONAL SIZE ESTIMATOR</div>
+            </div>
+
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="auth-tab-login">Log Masuk</div>
+                <div class="auth-tab" id="auth-tab-register">Daftar</div>
+            </div>
+
+            <div class="auth-error" id="auth-error"></div>
+
+            <form class="auth-form active" id="auth-form-login" autocomplete="on">
+                <div class="auth-field">
+                    <label>Email</label>
+                    <input type="email" id="login-email" required autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="auth-submit">Log Masuk</button>
+            </form>
+
+            <form class="auth-form" id="auth-form-register" autocomplete="on">
+                <div class="auth-field">
+                    <label>Nama</label>
+                    <input type="text" id="reg-name" required autocomplete="name">
+                </div>
+                <div class="auth-field">
+                    <label>Email</label>
+                    <input type="email" id="reg-email" required autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label>Password (min 6 aksara)</label>
+                    <input type="password" id="reg-password" required minlength="6" autocomplete="new-password">
+                </div>
+                <button type="submit" class="auth-submit">Daftar</button>
+            </form>
+
+            <div class="auth-footnote">Data anda disimpan dengan selamat di pelayan FUSE.</div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="logo-text"><span>fUSe</span>
+                <div style="font-size: 10px; line-height:1; margin-left:5px; color:#555; font-weight:600;">
+                    functional<br>size estimator</div>
+            </div>
+        </div>
+        <br>
+
+        <a class="nav-item" id="sb-laman-utama" onclick="switchSection('laman-utama')">
+            <span class="nav-icon-plain">🏠</span> Laman Utama
+        </a>
+
+        <a class="nav-item" onclick="alert('Pentadbiran — coming soon')">
+            <span class="nav-icon-plain">🛠️</span> Pentadbiran
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+
+        <div class="nav-item" id="sb-analisis" onclick="switchSection('analisis')">
+            <div id="sb-analisis-icon"
+                style="background-color: var(--fuse-purple); color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; justify-content: center; align-items: center; margin-right: 10px;">
+                📊</div> Analisis Sistem
+        </div>
+        <div id="sb-analisis-children" style="padding: 5px 0;">
+            <div class="sub-nav active" id="nav-senarai" onclick="switchMainPage('senarai'); switchSection('analisis');">Senarai Sistem</div>
+            <div class="sub-nav" id="nav-fpa" onclick="switchMainPage('fpa'); switchSection('analisis');">Kos FPA</div>
+            <div class="sub-nav" id="nav-pengurusan" onclick="switchMainPage('pengurusan'); switchSection('analisis');">Kos Pengurusan</div>
+            <div class="sub-nav" id="nav-perkakasan" onclick="switchMainPage('perkakasan'); switchSection('analisis');">Kos Perkakasan</div>
+        </div>
+
+        <a class="nav-item" onclick="alert('Laporan — coming soon')">
+            <span class="nav-icon-plain">📄</span> Laporan
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+        <a class="nav-item" onclick="alert('Panduan Sistem — coming soon')">
+            <span class="nav-icon-plain">📘</span> Panduan Sistem
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+        <a class="nav-item" onclick="alert('Profil — coming soon')">
+            <span class="nav-icon-plain">👤</span> Profil
+        </a>
+        <a class="nav-item" onclick="fuseLogout && fuseLogout();">
+            <span class="nav-icon-plain">🚪</span> Log Keluar
+        </a>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="header">
+            <div class="breadcrumb" id="top-breadcrumb">🏠 / Laman Utama Agensi</div>
+            <div style="display:flex; align-items:center; gap:14px;">
+                <span id="save-status" style="font-size:12px; color:#94a3b8; min-width:80px; text-align:right;"></span>
+                <div class="user-profile">GUEST <span class="user-avatar"></span> ≡</div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SECTION: LAMAN UTAMA (dashboard)
+             ============================================ -->
+        <div id="section-laman-utama" class="content-area">
+            <br>
+            <div class="dash-container">
+
+                <div class="dash-top-row">
+                    <div class="dash-stat-grid">
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Jumlah Agensi</div>
+                                <div class="value">1</div>
+                            </div>
+                            <div class="dash-stat-icon">🏢</div>
+                        </div>
+
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Projek Selesai</div>
+                                <div class="value" id="dash-projek-selesai">0/0</div>
+                            </div>
+                            <div class="dash-stat-icon">📁</div>
+                        </div>
+
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Jumlah Sistem</div>
+                                <div class="value" id="dash-jumlah-sistem">0</div>
+                            </div>
+                            <div class="dash-stat-icon">📊</div>
+                        </div>
+
+                        <div class="dash-stat-card eye-card" style="cursor:pointer;" onclick="openSystemFromDashboard(window.__lastSystemKod)">
+                            <div>
+                                <div class="label">Sistem Terakhir Dianalisis</div>
+                                <div class="value small" id="dash-last-system">—</div>
+                            </div>
+                            <div class="dash-stat-icon eye-icon">
+                                <!-- Animated eye: the white sclera stays put, the pupil
+                                     darts left↔right on hover (.eye-card:hover). -->
+                                <svg class="eye-svg" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+                                    <!-- Eye outline (whites of the eye) -->
+                                    <path d="M2 16 C 7 8, 25 8, 30 16 C 25 24, 7 24, 2 16 Z"
+                                          fill="#ffffff" stroke="#ffffff" stroke-width="1.4"
+                                          stroke-linejoin="round"/>
+                                    <!-- Pupil (the part that moves) -->
+                                    <g class="eye-pupil">
+                                        <circle cx="16" cy="16" r="5.4" fill="#7c3aed"/>
+                                        <circle cx="14.4" cy="14.4" r="1.6" fill="#ffffff" opacity="0.85"/>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dash-peranan">
+                        <h3>Peranan</h3>
+                        <div class="dash-peranan-row">
+                            <span>Pentadbir Agensi</span>
+                            <span class="num">3</span>
+                        </div>
+                        <div class="dash-peranan-row">
+                            <span>Pengguna Agensi</span>
+                            <span class="num">0</span>
+                        </div>
+                        <div class="dash-peranan-link" onclick="alert('Lihat Semua Peranan — coming soon')">Lihat Semua</div>
+                    </div>
+                </div>
+
+                <div class="dash-laporan-card">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+                        <h2 style="margin:0;">Senarai Laporan Sistem</h2>
+                        <button id="ask-ai-btn" class="ai-pill-btn ai-ribbon-wrap" onclick="aiModalLaunch(this, openAIReviewPanel)">
+                          <svg class="ai-pill-logo" viewBox="0 0 30 26" width="24" height="21" fill="none" aria-hidden="true">
+                            <defs>
+                              <linearGradient id="rib-1" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%"   stop-color="#ffffff"/>
+                                <stop offset="50%"  stop-color="#fbe7ff"/>
+                                <stop offset="100%" stop-color="#ffffff"/>
+                              </linearGradient>
+                              <filter id="rib-glow-1" x="-30%" y="-30%" width="160%" height="160%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#ffffff" flood-opacity="0.55"/>
+                              </filter>
+                            </defs>
+                            <path class="ai-ribbon"
+                                  stroke="url(#rib-1)"
+                                  stroke-width="4.2"
+                                  stroke-linecap="round"
+                                  filter="url(#rib-glow-1)"
+                                  d="M11 13 C11 6, 4 6, 4 13 C4 20, 11 20, 15 13 C19 6, 26 6, 26 13 C26 20, 19 20, 15 13"/>
+                          </svg>
+                          <span class="ai-pill-label">SEMAK AI</span>
+                        </button>
+                    </div>
+                    <table class="dash-laporan-table">
+                        <thead>
+                            <tr>
+                                <th>Kod Sistem</th>
+                                <th>Nama Sistem</th>
+                                <th>Keterangan</th>
+                                <th>Tarikh Cipta</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-laporan-body"></tbody>
+                    </table>
+                    <div class="dash-lihat-semua" onclick="openSystemFromDashboard(null)">Lihat Semua</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================
+             SECTION: ANALISIS SISTEM (existing app)
+             ============================================ -->
+        <div id="section-analisis" class="content-area" style="display:none;">
+            <br>
+            <div class="top-controls">
+                <div class="tabs-container" id="fpa-tabs" style="display: none;">
+                    <button class="tab" id="tab-data" onclick="switchPage('page-data')">Fungsi Data</button>
+                    <button class="tab active" id="tab-trans" onclick="switchPage('page-trans')">Fungsi
+                        Transaksi</button>
+                    <button class="tab" id="tab-vaf" onclick="switchPage('page-vaf')">Konfigurasi VAF</button>
+                    <button class="tab" id="tab-kos" onclick="switchPage('page-kos')">Penganggaran Kos</button>
+                </div>
+                <button class="btn-kembali" onclick="switchMainPage('senarai')">KEMBALI</button>
+            </div>
+
+            <!-- SENARAI SISTEM PAGE -->
+            <div id="page-senarai" class="page-section active">
+                <div class="card">
+                    <div class="card-title-row" style="margin-bottom: 20px; display:flex; align-items:center; justify-content:space-between;">
+                        <h2 style="color: #64748b; font-size: 20px;">Senarai Sistem</h2>
+                        <button class="ai-pill-btn ai-ribbon-wrap" onclick="aiModalLaunch(this, openAIPanel)">
+                          <svg class="ai-pill-logo" viewBox="0 0 30 26" width="24" height="21" fill="none" aria-hidden="true">
+                            <defs>
+                              <linearGradient id="rib-2" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%"   stop-color="#ffffff"/>
+                                <stop offset="50%"  stop-color="#fbe7ff"/>
+                                <stop offset="100%" stop-color="#ffffff"/>
+                              </linearGradient>
+                              <filter id="rib-glow-2" x="-30%" y="-30%" width="160%" height="160%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#ffffff" flood-opacity="0.55"/>
+                              </filter>
+                            </defs>
+                            <path class="ai-ribbon"
+                                  stroke="url(#rib-2)"
+                                  stroke-width="4.2"
+                                  stroke-linecap="round"
+                                  filter="url(#rib-glow-2)"
+                                  d="M11 13 C11 6, 4 6, 4 13 C4 20, 11 20, 15 13 C19 6, 26 6, 26 13 C26 20, 19 20, 15 13"/>
+                          </svg>
+                          <span class="ai-pill-label">FUSE AI</span>
+                        </button>
+                    </div>
+                    <div class="search-section">
+                        <div class="search-box"><label>Jenis Carian:</label><select class="form-control">
+                                <option>Semua</option>
+                            </select></div>
+                        <div class="search-box" style="flex: 2;"><label>Carian:</label><input type="text"
+                                class="form-control"></div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 15%;">Kod Sistem</th>
+                                <th style="width: 35%;">Nama Sistem</th>
+                                <th style="width: 25%;">Keterangan</th>
+                                <th style="text-align: right;"><button class="btn-outline" onclick="openRegisterModal()"
+                                        style="background:#b81cbb; color:white; border:none; padding:8px 20px;">DAFTAR</button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="senarai-table-body">
+                            <!-- Populated dynamically by renderSenaraiTable() -->
+                        </tbody>
+                    </table>
+
+                    <div style="text-align: right; margin-top: 15px; font-size: 12px; color: var(--text-muted);">
+                        <span id="senarai-count">0-0 of 0</span> <span
+                            style="margin-left:10px; background:#10b981; color:white; padding:2px 8px; border-radius:4px;">1</span>
+                        &gt;
+                    </div>
+
+                    <div
+                        style="margin-top: 50px; font-size: 11px; color: var(--text-muted); display:flex; justify-content:space-between; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+                        <div>Hakcipta Terpelihara © 2025 Kerajaan Negeri Johor.</div>
+                        <div>ICT@Johor | Hubungi Kami</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FUNGSI TRANSAKSI PAGE -->
+            <div id="page-trans" class="page-section">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2 id="title-trans" style="color:var(--fuse-navy);"></h2>
+                        <div><button class="btn-outline" onclick="addRow('trans')">DAFTAR</button><button
+                                class="btn-outline">PAPAR</button><button class="btn-outline">JANA DRAF</button></div>
+                    </div>
+                    <div class="search-section">
+                        <div class="search-box"><label>Jenis Carian:</label><select class="form-control">
+                                <option>Semua</option>
+                            </select></div>
+                        <div class="search-box" style="flex: 2;"><label>Carian:</label><input type="text"
+                                class="form-control"></div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">Proses Makro ⓘ</th>
+                                <th style="width: 15%;">Proses General ⓘ</th>
+                                <th style="width: 15%;">Aggregat ⓘ</th>
+                                <th style="width: 20%;">Komponen ⓘ</th>
+                                <th style="width: 10%;">Gandaan ⓘ</th>
+                                <th style="width: 15%;">Catatan ⓘ</th>
+                                <th style="text-align: right;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data kosong pada permulaan -->
+                        </tbody>
+                    </table>
+
+                    <div style="text-align: right; margin-top: 15px; font-size: 12px; color: var(--text-muted);">1-2 of
+                        2 <span style="margin-left:10px;">&lt; &gt;</span></div>
+                </div>
+
+                <div class="summary-bar">
+                    <div class="sum-col" style="text-align: left;">
+                        <div class="sum-title" style="color:white; font-size:14px;">Jumlah (UFP)</div>
+                        <div class="sum-sub" style="font-size:13px; color:#a1a5b7;">Fungsi Transaksi</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">MIN</div>
+                        <div class="sum-val" id="sum-min">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">ML</div>
+                        <div class="sum-val" id="sum-ml">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">MAX</div>
+                        <div class="sum-val" id="sum-max">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">M-MIN</div>
+                        <div class="sum-val" id="sum-mmin">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">M-ML</div>
+                        <div class="sum-val" id="sum-mml">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">M-MAX</div>
+                        <div class="sum-val" id="sum-mmax">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FUNGSI DATA PAGE -->
+            <div id="page-data" class="page-section">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2 id="title-data" style="color:var(--fuse-navy);"></h2>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button class="btn-outline" onclick="addRow('data')">DAFTAR</button>
+                            <button class="btn-outline">PAPAR</button>
+                            <button class="btn-outline">JANA DRAF</button>
+                        </div>
+                    </div>
+                    <div class="search-section">
+                        <div class="search-box"><label>Jenis Carian:</label><select class="form-control">
+                                <option>Semua</option>
+                            </select></div>
+                        <div class="search-box" style="flex: 2;"><label>Carian:</label><input type="text"
+                                class="form-control"></div>
+                    </div>
+                    <div class="ai-progress-strip" id="ai-prog-data">
+                      <div class="ai-progress-spinner"></div>
+                      <div class="ai-progress-text" id="ai-prog-data-text">AI sedang menganalisis…</div>
+                      <div class="ai-progress-bar-track"><div class="ai-progress-bar-fill" id="ai-prog-data-bar" style="width:0%"></div></div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Entiti ⓘ</th>
+                                <th style="width: 15%;">Aggregat ⓘ</th>
+                                <th style="width: 25%;">Komponen ⓘ</th>
+                                <th style="width: 10%;">Gandaan ⓘ</th>
+                                <th style="width: 15%;">Catatan ⓘ</th>
+                                <th style="text-align: right;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data kosong pada permulaan -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="summary-bar">
+                    <div class="sum-col" style="text-align: left;">
+                        <div class="sum-title" style="color:white; font-size:14px;">Jumlah (UFP)</div>
+                        <div class="sum-sub" style="font-size:13px; color:#a1a5b7;">Fungsi Data</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">MIN</div>
+                        <div class="sum-val" id="sum-data-min">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">ML</div>
+                        <div class="sum-val" id="sum-data-ml">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">MAX</div>
+                        <div class="sum-val" id="sum-data-max">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">M-MIN</div>
+                        <div class="sum-val" id="sum-data-mmin">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">M-ML</div>
+                        <div class="sum-val" id="sum-data-mml">0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">M-MAX</div>
+                        <div class="sum-val" id="sum-data-mmax">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KONFIGURASI VAF PAGE -->
+            <div id="page-vaf" class="page-section">
+                <div
+                    style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h2 id="title-vaf" style="color: #1e293b; font-size: 20px; font-weight: 600; margin:0;"></h2>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                          <button style="background: white; border: 1px solid #e2e8f0; padding: 8px 15px; border-radius: 6px; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-size: 12px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg> PANDUAN VAF
+                          </button>
+                        </div>
+                    </div>
+
+                    <div class="ai-progress-strip" id="ai-prog-vaf">
+                      <div class="ai-progress-spinner"></div>
+                      <div class="ai-progress-text" id="ai-prog-vaf-text">AI sedang menganalisis projek…</div>
+                      <div class="ai-progress-bar-track"><div class="ai-progress-bar-fill" id="ai-prog-vaf-bar" style="width:0%"></div></div>
+                    </div>
+                    <div id="vaf-grid-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
+                        <!-- Injected by JS -->
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-bottom: 30px; background: #f8fafc; padding: 20px; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 700; color: #1e293b; font-size: 12px;">Total Degree of
+                                    Influence (TDI)</span>
+                                <span style="color: #64748b; font-size: 11px;">SUM (1 - 14)</span>
+                            </div>
+                            <input type="text" id="vaf-tdi" value="0" readonly
+                                style="background: #e2e8f0; border: none; padding: 10px; border-radius: 6px; width: 150px; text-align: center; font-weight: 600; color: #333; cursor: not-allowed; font-size: 14px;">
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 700; color: #1e293b; font-size: 12px;">Value Adjustment Factor
+                                    (VAF)</span>
+                                <span style="color: #64748b; font-size: 11px;">(TDI * 0.01) + 0.65</span>
+                            </div>
+                            <input type="text" id="vaf-score" value="0.65" readonly
+                                style="background: #e2e8f0; border: none; padding: 10px; border-radius: 6px; width: 150px; text-align: center; font-weight: 600; color: #333; cursor: not-allowed; font-size: 14px;">
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div
+                        style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                        <button
+                            style="background: white; border: 1px solid #e2e8f0; padding: 10px 20px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+                            onclick="resetVAF()">SET SEMULA</button>
+                        <button id="btn-save-vaf"
+                            style="background: white; border: 1px solid #e2e8f0; padding: 10px 20px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+                            onclick="saveVAF()">SIMPAN</button>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- PENGANGGARAN KOS PAGE -->
+            <div id="page-kos" class="page-section">
+                <div id="report-container"
+                    style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <h2 style="color: #1e293b; font-size: 18px; font-weight: 600; margin: 0;">Laporan Penganggaran
+                            Kos FPA</h2>
+                        <span style="font-size: 12px; color: #64748b;" id="report-date"></span>
+                    </div>
+
+                    <!-- Card 1 -->
+                    <div style="border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 20px; overflow: hidden;">
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #475569; font-size: 13px;">
+                            <div>Anggaran Saiz Function Point (FP)</div>
+                            <div style="text-align: center;">MIN</div>
+                            <div style="text-align: center;">ML</div>
+                            <div style="text-align: center;">MAX</div>
+                        </div>
+
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; border-bottom: 1px dashed #f1f5f9; font-size: 13px; color: #64748b; align-items: center;">
+                            <div>Jumlah uFP Fungsi Data (A)</div>
+                            <div style="text-align: center;" id="rep-data-min">0.00</div>
+                            <div style="text-align: center;" id="rep-data-ml">0.00</div>
+                            <div style="text-align: center;" id="rep-data-max">0.00</div>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; border-bottom: 1px dashed #f1f5f9; font-size: 13px; color: #64748b; align-items: center;">
+                            <div>Jumlah uFP Fungsi Transaksi (B)</div>
+                            <div style="text-align: center;" id="rep-trans-min">0.00</div>
+                            <div style="text-align: center;" id="rep-trans-ml">0.00</div>
+                            <div style="text-align: center;" id="rep-trans-max">0.00</div>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; border-bottom: 1px dashed #f1f5f9; font-size: 13px; color: #64748b; align-items: center;">
+                            <div>Jumlah uFP (C = A + B)</div>
+                            <div style="text-align: center;" id="rep-sum-min">0.00</div>
+                            <div style="text-align: center;" id="rep-sum-ml">0.00</div>
+                            <div style="text-align: center;" id="rep-sum-max">0.00</div>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; border-bottom: 1px dashed #f1f5f9; font-size: 13px; color: #64748b; align-items: center;">
+                            <div>Value Adjustment Factor (VAF) (D)</div>
+                            <div style="text-align: center;" id="rep-vaf-min">0.65</div>
+                            <div style="text-align: center;" id="rep-vaf-ml">0.65</div>
+                            <div style="text-align: center;" id="rep-vaf-max">0.65</div>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; font-size: 13px; color: #1e293b; font-weight: 700; align-items: center;">
+                            <div>Jumlah aFP (C) x (D)</div>
+                            <div style="text-align: center;" id="rep-afp-min">0</div>
+                            <div style="text-align: center;" id="rep-afp-ml">0</div>
+                            <div style="text-align: center;" id="rep-afp-max">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div style="border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 20px; overflow: hidden;">
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #475569; font-size: 13px;">
+                            <div>Jumlah Kos (RM)</div>
+                            <div style="text-align: center;">MIN</div>
+                            <div style="text-align: center;">ML</div>
+                            <div style="text-align: center;">MAX</div>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; font-size: 13px; color: #64748b; align-items: center;">
+                            <div>Kos Per FP = RM1,200.00 (Cost Based On The Current Inflation Rate)</div>
+                            <div style="text-align: center;" id="rep-kos-min">0.00</div>
+                            <div style="text-align: center;" id="rep-kos-ml">0.00</div>
+                            <div style="text-align: center;" id="rep-kos-max">0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div style="border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 20px; overflow: hidden;">
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #475569; font-size: 13px;">
+                            <div>Jumlah Mandays (Mandays)</div>
+                            <div style="text-align: center;">MIN</div>
+                            <div style="text-align: center;">ML</div>
+                            <div style="text-align: center;">MAX</div>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: 4fr 1fr 1fr 1fr; padding: 15px 20px; font-size: 13px; color: #64748b; align-items: center;">
+                            <div>Mandays Per FP = (Jumlah FP x 10 Jam) / 8 Jam</div>
+                            <div style="text-align: center;" id="rep-man-min">0</div>
+                            <div style="text-align: center;" id="rep-man-ml">0</div>
+                            <div style="text-align: center;" id="rep-man-max">0</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 20px;" id="pdf-actions">
+                        <button id="btn-jana-draf" onclick="janaPDF()"
+                            style="background: white; border: 1px solid #e2e8f0; padding: 10px 30px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: 0.2s;">JANA
+                            DRAF PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KOS PENGURUSAN PAGE -->
+            <div id="page-pengurusan" class="page-section">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2>Pengiraan Kos Pengurusan</h2>
+                        <div>
+                            <button class="btn-outline" onclick="addRowPengurusan()">DAFTAR</button>
+                            <button class="btn-outline">JANA DRAF</button>
+                        </div>
+                    </div>
+                    <div class="search-section">
+                        <div class="search-box">
+                            <label>Jenis Carian:</label>
+                            <select class="form-control">
+                                <option>Semua</option>
+                            </select>
+                        </div>
+                        <div class="search-box" style="flex: 2;">
+                            <label>Carian:</label>
+                            <input type="text" class="form-control">
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;"><input type="checkbox"></th>
+                                <th style="width: 30%;">Perkara</th>
+                                <th style="width: 15%;">Harga Seunit (RM)</th>
+                                <th style="width: 10%;">Kuantiti</th>
+                                <th style="width: 15%;">Harga Keseluruhan (RM)</th>
+                                <th style="width: 10%;">SST 8% (RM)</th>
+                                <th style="width: 15%;">Harga Keseluruhan (+SST 8%) (RM)</th>
+                                <th style="text-align: right; width: 10%;">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pengurusan-table-body">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                    <div style="text-align: right; margin-top: 15px; font-size: 12px; color: var(--text-muted);"><span
+                            id="pengurusan-count">0-0 of 0</span> <span style="margin-left:10px;">&lt; &gt;</span></div>
+                </div>
+
+                <div class="summary-bar" style="justify-content: space-around;">
+                    <div class="sum-col">
+                        <div class="sum-title">Harga Keseluruhan</div>
+                        <div class="sum-val" id="sum-pengurusan-base">RM 0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">SST 8%</div>
+                        <div class="sum-val" id="sum-pengurusan-sst">RM 0.00</div>
+                    </div>
+                    <div class="sum-col">
+                        <div class="sum-title">Harga Keseluruhan (+SST 8%)</div>
+                        <div class="sum-val" id="sum-pengurusan-total">RM 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KOS PERKAKASAN PAGE -->
+            <div id="page-perkakasan" class="page-section">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2>Pengiraan Kos Perkakasan</h2>
+                        <div>
+                            <button class="btn-outline" onclick="addRowPerkakasan()">DAFTAR</button>
+                            <button class="btn-outline">JANA DRAF</button>
+                        </div>
+                    </div>
+                    <div class="search-section">
+                        <div class="search-box">
+                            <label>Jenis Carian:</label>
+                            <select class="form-control">
+                                <option>Semua</option>
+                            </select>
+                        </div>
+                        <div class="search-box" style="flex: 2;">
+                            <label>Carian:</label>
+                            <input type="text" class="form-control">
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 45%;">Perkakasan</th>
+                                <th style="width: 20%;">Harga Seunit (RM)</th>
+                                <th style="width: 10%;">Kuantiti</th>
+                                <th style="width: 20%;">Harga Keseluruhan (RM)</th>
+                                <th style="text-align: right;">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="perkakasan-table-body">
+                            <tr id="empty-perkakasan">
+                                <td colspan="6" style="text-align: center; color: var(--text-muted);">Tiada Rekod
+                                    Dijumpai</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="text-align: right; margin-top: 15px; font-size: 12px; color: var(--text-muted);"><span
+                            id="perkakasan-count">0-0 of 0</span> <span style="margin-left:10px;">&lt; &gt;</span></div>
+                </div>
+
+                <div class="summary-bar" style="justify-content: center;">
+                    <div class="sum-col">
+                        <div class="sum-title">Harga Keseluruhan</div>
+                        <div class="sum-val" id="sum-perkakasan-total">RM 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="komponenModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Pilih Jenis Komponen</h2>
+            <div id="komponenModalEmpty" style="display:none; padding:20px; text-align:center; color:#888;">
+                Sila pilih <strong>Aggregat</strong> dahulu sebelum memilih komponen.
+            </div>
+            <table class="modal-table" id="komponenModalTable">
+                <thead>
+                    <tr>
+                        <th>Jenis Komponen</th>
+                        <th>Point Min</th>
+                        <th>Point Median</th>
+                        <th>Point Max</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody id="komponenModalBody"></tbody>
+            </table>
+
+            <div style="margin-top:20px;">
+                <select id="modalSelect" class="form-control">
+                    <option value="">Pilih Komponen</option>
+                </select>
+            </div>
+            <div style="margin-top:20px; text-align:center;">
+                <button class="btn-kembali" onclick="confirmModal()" style="margin-right:10px;">OK</button>
+                <button
+                    style="background:#d32f2f; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:600; cursor:pointer;"
+                    onclick="closeModal()">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGISTER NEW SYSTEM MODAL -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal-content" style="width: 480px; padding: 35px;">
+            <h2 id="registerModalTitle" style="color: var(--fuse-navy); margin-bottom: 25px;">Daftar Sistem Baru</h2>
+            <div style="margin-bottom: 18px;">
+                <label
+                    style="display:block; font-size:12px; font-weight:600; color:var(--fuse-navy); margin-bottom:8px;">Kod
+                    Sistem <span style="color:#d32f2f;">*</span></label>
+                <input type="text" id="reg-kod" class="form-control" placeholder="Cth: UTM4" maxlength="10"
+                    style="text-transform:uppercase;">
+            </div>
+            <div style="margin-bottom: 18px;">
+                <label
+                    style="display:block; font-size:12px; font-weight:600; color:var(--fuse-navy); margin-bottom:8px;">Nama
+                    Sistem <span style="color:#d32f2f;">*</span></label>
+                <input type="text" id="reg-nama" class="form-control" placeholder="Cth: Sistem Pengurusan Pelajar">
+            </div>
+            <div style="margin-bottom: 25px;">
+                <label
+                    style="display:block; font-size:12px; font-weight:600; color:var(--fuse-navy); margin-bottom:8px;">Keterangan</label>
+                <textarea id="reg-keterangan" class="form-control" rows="3"
+                    placeholder="Penerangan ringkas tentang sistem..." style="resize:vertical;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button onclick="closeRegisterModal()"
+                    style="background:#d32f2f; color:white; border:none; padding:10px 25px; border-radius:6px; font-weight:600; cursor:pointer;">BATAL</button>
+                <button onclick="submitRegister()" class="btn-kembali"
+                    style="background:var(--fuse-navy);">SIMPAN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAVE MODAL -->
+    <div id="saveModal" class="modal-overlay">
+        <div class="modal-content" style="width: 450px; text-align: center; padding: 40px; border-radius: 12px;">
+            <h3 style="color: #333; font-size: 18px; margin-bottom: 30px; font-weight: 600;">Anda pasti ingin menyimpan
+                maklumat ini?</h3>
+            <div style="display: flex; justify-content: center; gap: 15px;">
+                <button onclick="confirmSaveModal()"
+                    style="background:#1e293b; color:white; border:none; padding:10px 35px; border-radius:6px; font-weight:600; cursor:pointer;">YA</button>
+                <button onclick="closeSaveModal()"
+                    style="background:#d32f2f; color:white; border:none; padding:10px 35px; border-radius:6px; font-weight:600; cursor:pointer;">TIDAK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSAKSI MODAL -->
+    <div id="komponenTransModal" class="modal-overlay">
+        <div class="modal-content" style="width: 800px;">
+            <h2>Pilih Jenis Komponen</h2>
+            <div id="komponenTransModalEmpty" style="display:none; padding:20px; text-align:center; color:#888;">
+                Sila pilih <strong>Aggregat</strong> dahulu sebelum memilih komponen.
+            </div>
+            <table class="modal-table" id="komponenTransModalTable">
+                <thead>
+                    <tr>
+                        <th>Jenis Komponen</th>
+                        <th>Point Min</th>
+                        <th>Point Median</th>
+                        <th>Point Max</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody id="komponenTransModalBody"></tbody>
+            </table>
+
+            <div style="margin-top:20px;">
+                <select id="modalTransSelect" class="form-control">
+                    <option value="">Pilih Komponen</option>
+                </select>
+            </div>
+            <div style="margin-top:20px; text-align:center;">
+                <button class="btn-kembali" onclick="confirmTransModal()" style="margin-right:10px;">OK</button>
+                <button
+                    style="background:#d32f2f; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:600; cursor:pointer;"
+                    onclick="closeTransModal()">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT INFO PANEL -->
+    <div id="infoPanel" class="right-panel">
+        <div class="rp-header">
+            <h2>Info Sistem</h2>
+            <button class="rp-close" onclick="closeInfoPanel()">✖</button>
+        </div>
+        <div class="rp-content">
+            <div class="rp-info-row"><strong>Kod Sistem :</strong> <span id="rp-kod">UTM3</span></div>
+            <div class="rp-info-row"><strong>Nama Sistem :</strong> <span id="rp-nama">Food Counter</span></div>
+            <div class="rp-info-row"><strong>Kos FPA:</strong> RM 0.00 / RM 0.00 (+sst 8%)</div>
+            <div class="rp-info-row"><strong>Kos Pengurusan:</strong> RM 0.00 / RM 0.00 (+sst 8%)</div>
+            <div class="rp-info-row"><strong>Kos Perkakasan:</strong> RM 0.00</div>
+            <div class="rp-info-row"><strong>Kos keseluruhan:</strong> RM 0.00 / RM 0.00 (+sst 8%)</div>
+            <div class="rp-info-row" style="margin-bottom:25px;"><strong>Keterangan Ringkas:</strong> <span
+                    id="rp-ket">Food</span></div>
+
+            <table class="rp-table">
+                <thead>
+                    <tr>
+                        <th>Modul</th>
+                        <th style="text-align:center;">Status Kunci</th>
+                        <th style="text-align:center;">Pemilik Akses</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="width: 50%;"><button class="btn-rp-module"
+                                onclick="navToModule('fpa', 'page-data')">FUNGSI DATA</button></td>
+                        <td style="text-align:center;"><label class="toggle-switch"><input type="checkbox"><span
+                                    class="toggle-slider"></span></label></td>
+                        <td style="text-align:center; color:#94a3b8;">N/A</td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn-rp-module" onclick="navToModule('fpa', 'page-trans')">FUNGSI
+                                TRANSAKSI</button></td>
+                        <td style="text-align:center;"><label class="toggle-switch"><input type="checkbox"><span
+                                    class="toggle-slider"></span></label></td>
+                        <td style="text-align:center; color:#94a3b8;">N/A</td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn-rp-module" onclick="navToModule('fpa', 'page-vaf')">KONFIGURASI
+                                VAF</button></td>
+                        <td style="text-align:center;"><label class="toggle-switch"><input type="checkbox"><span
+                                    class="toggle-slider"></span></label></td>
+                        <td style="text-align:center; color:#94a3b8;">N/A</td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn-rp-module" onclick="navToModule('pengurusan')">PENGURUSAN</button></td>
+                        <td style="text-align:center;"><label class="toggle-switch"><input type="checkbox"><span
+                                    class="toggle-slider"></span></label></td>
+                        <td style="text-align:center; color:#94a3b8;">N/A</td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn-rp-module" onclick="navToModule('perkakasan')">PERKAKASAN</button></td>
+                        <td style="text-align:center;"><label class="toggle-switch"><input type="checkbox"><span
+                                    class="toggle-slider"></span></label></td>
+                        <td style="text-align:center; color:#94a3b8;">N/A</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+<!-- ===================== FUSE AI DRAWER ===================== -->
+<div class="ai-shade" id="ai-shade" onclick="closeAiDrawer()"></div>
+<div class="ai-drawer" id="ai-drawer">
+  <div class="ai-drawer-nav">
+    <div class="ai-drawer-nav-left">
+      <div class="ai-drawer-nav-title" id="ai-drawer-title">Cadangan AI</div>
+      <div class="ai-drawer-nav-sub" id="ai-drawer-sub">Semak dan pilih cadangan</div>
+    </div>
+    <button class="ai-drawer-close" onclick="closeAiDrawer()">✕</button>
+  </div>
+  <div class="ai-drawer-context" id="ai-drawer-ctx" style="display:none;">
+    <div class="ai-drawer-context-label">Sistem</div>
+    <div class="ai-drawer-context-value" id="ai-drawer-ctx-val">—</div>
+  </div>
+  <div class="ai-drawer-body" id="ai-drawer-body"></div>
+  <div class="ai-drawer-footer">
+    <button class="ai-footer-btn secondary" onclick="closeAiDrawer()">Batal</button>
+    <button class="ai-footer-btn primary" onclick="acceptAllAiSugg()"><span>✦ Guna Semua</span></button>
+  </div>
+</div>
+<div class="ai-toast" id="ai-toast">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#30d158" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="ai-toast-msg">Selesai</span>
+</div>
+
+<!-- ============================================
+     ASK AI — system completeness analysis modal
+     ============================================ -->
+<div id="ask-ai-overlay" class="ask-ai-overlay" onclick="if(event.target===this) closeAskAi()">
+  <div class="ask-ai-card">
+    <div class="ask-ai-header">
+      <div>
+        <div class="ask-ai-title">✦ ASK AI — Status Sistem</div>
+        <div class="ask-ai-sub">Analisis kesemua sistem anda</div>
+      </div>
+      <button class="ask-ai-close" onclick="closeAskAi()">✕</button>
+    </div>
+
+    <div class="ask-ai-body" id="ask-ai-body">
+      <!-- Filled by askAiAnalyzeAndOpen() -->
+    </div>
+
+    <div class="ask-ai-footer">
+      <button class="ask-ai-btn-secondary" onclick="closeAskAi()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div id="ai-modal-overlay"></div>
+
+<!-- ============================================================
+     GOOEY FAB → CHATBOX
+     Two-layer architecture (prevents content blur):
+
+       Layer 1 (#ai-goo-bg)   — wears the SVG goo filter. Holds the
+                                 main-blob (background) + 3 particle
+                                 blobs that scatter outward. Blurred
+                                 then re-sharpened by feColorMatrix.
+
+       Layer 2 (#ai-goo-content) — sits ABOVE layer 1 (higher z-index).
+                                   Holds the crisp UI: FAB icon when
+                                   closed, full chat UI when open.
+                                   NEVER inside the goo filter, so
+                                   text stays sharp.
+     ============================================================ -->
+
+<!-- Layer 1: gooey background (the liquid mass) -->
+<div id="ai-goo-bg" class="ai-goo-bg">
+  <div class="ai-particle-blob p1"></div>
+  <div class="ai-particle-blob p2"></div>
+  <div class="ai-particle-blob p3"></div>
+  <div class="ai-main-blob"></div>
+</div>
+
+<!-- Layer 2: crisp content -->
+<div id="ai-goo-content" class="ai-goo-content">
+  <!-- FAB icon — visible when closed -->
+  <button class="ai-fab-icon" onclick="openAIModal()" title="Buka AI">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z"/>
+    </svg>
+  </button>
+
+  <div id="ai-modal-card" class="with-sidebar">
+    <div class="ai-orb ai-orb-1"></div>
+    <div class="ai-orb ai-orb-2"></div>
+
+    <!-- ===== Sidebar — chat history (estimate mode) OR systems list (review mode) ===== -->
+    <div class="ai-sidebar">
+      <div class="ai-sidebar-header">
+        <div class="ai-sidebar-title" id="ai-sidebar-title">Sejarah Perbualan</div>
+        <button class="ai-new-chat-btn" id="ai-new-chat-btn" onclick="aiStartNewConversation()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Perbualan Baru
+        </button>
+      </div>
+      <div class="ai-convo-list" id="ai-convo-list">
+        <div class="ai-convo-empty">Memuat…</div>
+      </div>
+    </div>
+
+    <!-- ===== Main column (existing chat UI) ===== -->
+    <div class="ai-main-column">
+      <!-- Particles container (populated by JS when thinking) -->
+      <div id="ai-particles"></div>
+
+      <!-- Header -->
+      <div id="ai-modal-header">
+        <!-- Just the infinity-ribbon logo, no ripple rings / circle. -->
+        <div class="ai-avatar" id="ai-header-logo">
+          <svg class="ai-logo-ribbon" viewBox="0 0 30 26" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="rib-header" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"   stop-color="#fff"/>
+                <stop offset="50%"  stop-color="#fae8ff"/>
+                <stop offset="100%" stop-color="#fff"/>
+              </linearGradient>
+            </defs>
+            <path class="ai-ribbon" stroke="url(#rib-header)" stroke-width="5.5" stroke-linecap="round"
+                  d="M11 13 C11 6, 4 6, 4 13 C4 20, 11 20, 15 13 C19 6, 26 6, 26 13 C26 20, 19 20, 15 13"/>
+          </svg>
+        </div>
+        <!-- No title text — just the logo. A small status line shows what
+             the AI is currently doing. -->
+        <div style="min-width:0;">
+          <div class="ai-header-sub" id="ai-header-sub">Siap membantu anda</div>
+        </div>
+
+        <!-- System-link dropdown (custom, themed): lets the user pick which
+             system the AI should edit. -->
+        <div class="ai-system-link" id="ai-system-link" title="Pilih sistem yang AI akan edit">
+          <span class="ai-system-link-label">Sistem:</span>
+          <button type="button" class="ai-sysdd-trigger" id="ai-sysdd-trigger"
+                  onclick="aiToggleSystemDropdown(event)">
+            <span class="ai-sysdd-current" id="ai-sysdd-current">— Tiada (cipta baharu) —</span>
+            <svg class="ai-sysdd-caret" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="ai-sysdd-menu" id="ai-sysdd-menu" role="listbox"></div>
+        </div>
+
+        <button class="ai-close-btn" onclick="closeAIModal()">✕</button>
+      </div>
+
+      <!-- Chat -->
+      <div id="ai-chat-area"></div>
+
+      <!-- Input -->
+      <div id="ai-input-area">
+        <textarea id="ai-textarea" rows="1" placeholder="Terangkan sistem anda dalam satu perenggan… AI akan isi semua borang secara automatik." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIEstimate();}"></textarea>
+        <button id="ai-send-btn" onclick="sendAIEstimate()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- /#ai-goo-content -->
+
+<!-- ============================================================
+     Scripts (loaded in dependency order)
+     ============================================================
+     app.js          — global state, navigation, all module renderers,
+                       persistence, modals, final report, init.
+     vaf-grid.js     — populates the 14-row VAF GSC grid on DOMContentLoaded.
+     ai-assist.js    — Apple-style "Bantu AI" pill, drop-down menu, suggestion
+                       drawer, auto-fill animations (simulated, no backend).
+     ai-chatbox.js   — AI Modal chatbox with multi-turn conversation against
+                       the Node/Express backend at http://localhost:3001
+                       (POST /api/chat → injects payload into systems[]).
+============================================================ -->
+<script src="js/app.js?v=30"></script>
+<script src="js/vaf-grid.js"></script>
+<script src="js/ai-assist.js?v=30"></script>
+<script src="js/ai-chatbox.js?v=30"></script>
+<script src="js/auth.js?v=30"></script>
+
+</body>
+
+</html>

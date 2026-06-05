@@ -1,0 +1,146 @@
+/* ============================================
+   AUTH OVERLAY — login / register
+   Sits on top of everything; hides on successful auth.
+   ============================================ */
+
+#auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: linear-gradient(135deg, #1e2133 0%, #2a1a4a 60%, #c51196 140%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+}
+
+#auth-overlay.hidden { display: none; }
+
+.auth-card {
+    width: 380px;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 14px;
+    padding: 32px 32px 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.auth-brand {
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.auth-brand .logo {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e2133;
+}
+
+.auth-brand .logo span {
+    color: #c51196;
+}
+
+.auth-brand .sub {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 6px;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 8px;
+    margin-bottom: 22px;
+}
+
+.auth-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.auth-tab.active {
+    background: white;
+    color: #1e2133;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+
+.auth-field {
+    margin-bottom: 14px;
+}
+
+.auth-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.auth-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.auth-field input:focus {
+    border-color: #c51196;
+}
+
+.auth-submit {
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, #7c3aed, #c51196);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: opacity 0.15s;
+}
+
+.auth-submit:hover { opacity: 0.92; }
+.auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    margin-bottom: 14px;
+    display: none;
+}
+
+.auth-error.show { display: block; }
+
+.auth-footnote {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* ----- Sidebar user badge (replaces hardcoded "CHING LEONG CHEN") ----- */
+.user-profile-name { cursor: default; }

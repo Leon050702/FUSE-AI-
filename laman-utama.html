@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART FUSE — Laman Utama</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="logo-text"><span>fUSe</span>
+                <div style="font-size: 10px; line-height:1; margin-left:5px; color:#555; font-weight:600;">
+                    functional<br>size estimator</div>
+            </div>
+        </div>
+        <br>
+
+        <a class="nav-item active-home">
+            <div class="nav-icon">🏠</div> Laman Utama
+        </a>
+
+        <a class="nav-item" onclick="alert('Pentadbiran — coming soon')">
+            <span class="nav-icon-plain">🛠️</span> Pentadbiran
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+
+        <a class="nav-item" href="index.html">
+            <span class="nav-icon-plain">📊</span> Analisis Sistem
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+
+        <a class="nav-item" onclick="alert('Laporan — coming soon')">
+            <span class="nav-icon-plain">📄</span> Laporan
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+
+        <div style="margin: 20px 0; border-top: 1px solid #f1f5f9;"></div>
+
+        <a class="nav-item" onclick="alert('Panduan Sistem — coming soon')">
+            <span class="nav-icon-plain">📘</span> Panduan Sistem
+            <span style="margin-left:auto; color:#94a3b8;">▾</span>
+        </a>
+
+        <a class="nav-item" onclick="alert('Profil — coming soon')">
+            <span class="nav-icon-plain">👤</span> Profil
+        </a>
+
+        <a class="nav-item" onclick="if(confirm('Log Keluar?')) location.reload();">
+            <span class="nav-icon-plain">🚪</span> Log Keluar
+        </a>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="header">
+            <div class="breadcrumb">🏠 / Laman Utama Agensi</div>
+            <div class="user-profile">CHING LEONG CHEN <span class="user-avatar"></span> ≡</div>
+        </div>
+
+        <div class="content-area">
+            <br>
+            <div class="dash-container">
+
+                <!-- TOP ROW: 4 stat cards (left) + Peranan card (right) -->
+                <div class="dash-top-row">
+                    <div class="dash-stat-grid">
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Jumlah Agensi</div>
+                                <div class="value">1</div>
+                            </div>
+                            <div class="dash-stat-icon">🏢</div>
+                        </div>
+
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Projek Selesai</div>
+                                <div class="value">1/4</div>
+                            </div>
+                            <div class="dash-stat-icon">📁</div>
+                        </div>
+
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Jumlah Pengguna</div>
+                                <div class="value">4</div>
+                            </div>
+                            <div class="dash-stat-icon">👤</div>
+                        </div>
+
+                        <div class="dash-stat-card">
+                            <div>
+                                <div class="label">Sistem Terakhir Dianalisis</div>
+                                <div class="value small">Smart Fuse Test Adam</div>
+                            </div>
+                            <div class="dash-stat-icon">👁️</div>
+                        </div>
+                    </div>
+
+                    <div class="dash-peranan">
+                        <h3>Peranan</h3>
+                        <div class="dash-peranan-row">
+                            <span>Pentadbir Agensi</span>
+                            <span class="num">3</span>
+                        </div>
+                        <div class="dash-peranan-row">
+                            <span>Pengguna Agensi</span>
+                            <span class="num">0</span>
+                        </div>
+                        <div class="dash-peranan-link" onclick="alert('Lihat Semua Peranan — coming soon')">Lihat Semua</div>
+                    </div>
+                </div>
+
+                <!-- SENARAI LAPORAN SISTEM -->
+                <div class="dash-laporan-card">
+                    <h2>Senarai Laporan Sistem</h2>
+                    <table class="dash-laporan-table">
+                        <thead>
+                            <tr>
+                                <th>Kod Sistem</th>
+                                <th>Nama Sistem</th>
+                                <th>Keterangan</th>
+                                <th>Tarikh Cipta</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>UTM1</td>
+                                <td>testing</td>
+                                <td>for testing</td>
+                                <td>06/04/2026</td>
+                                <td style="text-align:right;"><button class="eye-btn" onclick="window.location='index.html'">👁️</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="dash-lihat-semua" onclick="window.location='index.html'">Lihat Semua</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

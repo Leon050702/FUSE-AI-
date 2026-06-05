@@ -1,0 +1,536 @@
+/* ============================================
+   DASHBOARD (Laman Utama)
+   Reuses .sidebar, .nav-item, .header, etc. from styles.css.
+   ============================================ */
+
+.dash-container {
+    padding: 0 30px 30px;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Top row: 3 stat cards on the left, Peranan card on the right */
+.dash-top-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.dash-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+}
+
+.dash-stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    border: 1px solid #f1f5f9;
+    min-height: 110px;
+}
+
+.dash-stat-card .label {
+    font-size: 15px;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 12px;
+}
+
+.dash-stat-card .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.dash-stat-card .value.small {
+    font-size: 22px;
+}
+
+.dash-stat-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--fuse-purple);
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+/* Animated eye — used in "Sistem Terakhir Dianalisis".
+   On card hover the pupil darts left ↔ right (looking around). */
+.eye-svg { display: block; overflow: visible; }
+.eye-pupil {
+    transform-origin: 16px 16px;
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.eye-card:hover .eye-pupil {
+    animation: eye-look 1.6s ease-in-out infinite;
+}
+@keyframes eye-look {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(-4.5px); }   /* look left */
+    45%  { transform: translateX(-4.5px); }   /* hold */
+    55%  { transform: translateX(4.5px); }    /* dart right */
+    80%  { transform: translateX(4.5px); }    /* hold */
+    100% { transform: translateX(0); }        /* back to centre */
+}
+/* A tiny lift + glow on the eye box for a bit of life. */
+.eye-card:hover .eye-icon {
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45);
+}
+.eye-icon { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+
+/* Peranan card (right side, navy) */
+.dash-peranan {
+    background: var(--fuse-navy);
+    color: white;
+    border-radius: 12px;
+    padding: 28px 30px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    min-height: 240px;
+}
+
+.dash-peranan h3 {
+    margin: 0 0 24px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+}
+
+.dash-peranan-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: #cbd5e1;
+}
+
+.dash-peranan-row .num {
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.dash-peranan-link {
+    margin-top: auto;
+    text-align: right;
+    color: white;
+    font-size: 14px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding-top: 16px;
+}
+
+.dash-peranan-link:hover {
+    color: #c4b5fd;
+}
+
+/* Senarai Laporan Sistem table card */
+.dash-laporan-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    border: 1px solid #f1f5f9;
+}
+
+.dash-laporan-card h2 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.dash-laporan-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dash-laporan-table th {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dash-laporan-table td {
+    padding: 16px 12px;
+    font-size: 14px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dash-laporan-table tr:last-child td {
+    border-bottom: none;
+}
+
+.dash-laporan-table .eye-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+}
+
+.dash-laporan-table .eye-btn:hover {
+    color: var(--fuse-purple);
+}
+
+.dash-lihat-semua {
+    margin-top: 16px;
+    text-align: right;
+    font-size: 14px;
+    color: #475569;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.dash-lihat-semua:hover {
+    color: var(--fuse-purple);
+}
+
+/* Sidebar — Laman Utama active state (mirrors the existing .nav-active-box pattern) */
+.nav-item.active-home {
+    background: white;
+    color: var(--fuse-navy);
+    font-weight: 600;
+}
+
+.nav-item.active-home .nav-icon {
+    background-color: var(--fuse-purple);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+.nav-item .nav-icon-plain {
+    margin-right: 10px;
+    font-size: 16px;
+    width: 28px;
+    text-align: center;
+}
+
+/* ============================================
+   ASK AI modal — system completeness analysis
+   ============================================ */
+.ask-ai-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    display: flex;
+    pointer-events: none;
+    transition: opacity 0.28s ease, visibility 0s 0.52s;
+}
+
+.ask-ai-overlay.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.28s ease, visibility 0s;
+}
+
+.ask-ai-card {
+    background: white;
+    width: 100%;
+    max-width: 720px;
+    max-height: 88vh;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transform:
+        translate(var(--ask-ai-dx, 0px), var(--ask-ai-dy, 0px))
+        scale(var(--ask-ai-scale, 0.12));
+    transform-origin: var(--ask-ai-origin-x, 100%) var(--ask-ai-origin-y, 0%);
+    transition:
+        opacity 0.22s 0.22s ease,
+        transform 0.62s cubic-bezier(.68, -.55, .265, 1.55);
+    will-change: transform, opacity;
+}
+.ask-ai-overlay.show .ask-ai-card {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+}
+
+.ask-ai-header {
+    background: linear-gradient(135deg, #1e2133 0%, #5b21b6 70%, #c51196 140%);
+    color: white;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ask-ai-title { font-size: 18px; font-weight: 700; }
+.ask-ai-sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+.ask-ai-close {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+}
+.ask-ai-close:hover { background: rgba(255, 255, 255, 0.25); }
+
+.ask-ai-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 26px;
+}
+
+.ask-ai-section {
+    margin-bottom: 22px;
+}
+
+.ask-ai-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ask-ai-section-title.ready  { color: #047857; }
+.ask-ai-section-title.partial { color: #b45309; }
+
+.ask-ai-system-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    background: #f8fafc;
+}
+
+.ask-ai-system-row .row-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+}
+.ask-ai-system-row .row-head strong { color: #1e293b; font-size: 14px; }
+.ask-ai-system-row .row-head .kod {
+    background: #c51196; color: white;
+    padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700;
+    margin-right: 8px;
+}
+
+.ask-ai-modules { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.ask-ai-pill {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 10px;
+    background: #e2e8f0; color: #64748b;
+}
+.ask-ai-pill.done    { background: #d1fae5; color: #047857; }
+.ask-ai-pill.missing { background: #fee2e2; color: #b91c1c; }
+
+.ask-ai-empty {
+    text-align: center;
+    color: #94a3b8;
+    padding: 24px;
+    font-size: 13px;
+}
+
+.ask-ai-ai-block {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.06), rgba(197, 17, 150, 0.06));
+    border: 1px solid #e9d5ff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #334155;
+    white-space: pre-wrap;
+}
+.ask-ai-ai-block.loading {
+    color: #7c3aed;
+    font-style: italic;
+}
+.ask-ai-ai-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7c3aed;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ask-ai-footer {
+    border-top: 1px solid #f1f5f9;
+    padding: 14px 22px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.ask-ai-btn-secondary {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 8px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+}
+.ask-ai-btn-secondary:hover { background: #f8fafc; }
+
+/* ============================================
+   ASK AI pill button + #02 Gradient Ribbon SVG animation
+   - Idle: logo-only, gently floating up/down
+   - Hover: pill expands, ASK AI label slides in, ribbon speeds up
+   ============================================ */
+@keyframes ai-flow  { to { stroke-dashoffset: -160; } }
+@keyframes ai-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes ai-pill-rebound {
+  0%   { transform: scale(0.84) translateY(0); }
+  42%  { transform: scale(1.18) translateY(-8px); }
+  68%  { transform: scale(0.96) translateY(2px); }
+  84%  { transform: scale(1.06) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.ai-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: linear-gradient(135deg, #8b46f0 0%, #c51196 100%);
+  color: white;
+  border: none;
+  border-radius: 22px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(197, 17, 150, 0.40),
+              inset 0 1px 0 rgba(255,255,255,0.22);
+  overflow: hidden;
+  white-space: nowrap;
+  /* Continuous gentle float — pauses while user is interacting */
+  animation: ai-float 3.2s ease-in-out infinite;
+  transition: transform 0.25s cubic-bezier(.22,.68,0,1.2),
+              box-shadow 0.25s ease,
+              padding 0.25s ease,
+              gap 0.25s ease;
+}
+.ai-pill-btn:hover {
+  /* Swap the gentle float for a stronger glow pulse on hover. */
+  animation: ai-pill-glow 1.6s ease-in-out infinite;
+  transform: scale(1.14) translateY(-2px);
+  /* Layered glow: crisp halo + soft purple bloom + wide magenta bloom. */
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.10),
+    0 0 22px 6px rgba(167, 139, 250, 0.55),
+    0 0 46px 12px rgba(197, 17, 150, 0.55),
+    0 0 80px 22px rgba(197, 17, 150, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  padding: 10px 20px;
+  gap: 10px;
+}
+/* Breathing glow while the user hovers the pill. */
+@keyframes ai-pill-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.10),
+      0 0 22px 6px rgba(167, 139, 250, 0.55),
+      0 0 46px 12px rgba(197, 17, 150, 0.55),
+      0 0 80px 22px rgba(197, 17, 150, 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.18),
+      0 0 30px 9px rgba(167, 139, 250, 0.75),
+      0 0 60px 18px rgba(197, 17, 150, 0.70),
+      0 0 110px 32px rgba(197, 17, 150, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.40);
+  }
+}
+/* The infinity-ribbon logo inside the pill — always crisply visible. */
+.ai-pill-logo {
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(80, 0, 60, 0.35));
+}
+.ai-pill-btn:active { transform: scale(1.05); }
+.ai-pill-btn.ai-pill-morphing {
+  animation-play-state: paused;
+  opacity: 0;
+  transform: scale(1.08);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.ai-pill-btn.ai-pill-rebound {
+  animation: ai-pill-rebound 0.62s cubic-bezier(.22,.68,0,1.2);
+}
+
+/* The "ASK AI" label is collapsed by default and expands on hover */
+.ai-pill-label {
+  display: inline-block;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  letter-spacing: 0.4px;
+  transition: max-width 0.3s cubic-bezier(.22,.68,0,1.2),
+              opacity 0.25s ease 0.05s;
+}
+.ai-pill-btn:hover .ai-pill-label {
+  max-width: 80px;   /* wide enough for "ASK AI" */
+  opacity: 1;
+}
+
+/* The infinity-style ribbon path drawn inside the button's inline SVG */
+.ai-ribbon {
+  stroke-dasharray: 80;
+  animation: ai-flow 5s linear infinite;
+}
+.ai-ribbon-wrap:hover .ai-ribbon,
+.ai-ribbon-wrap.is-active .ai-ribbon {
+  animation-duration: 1.5s;
+}
+
+/* (Old particle-stage code removed — particles now live inside
+   #ai-goo-stage in ai-modal.css for the gooey blob modal port.) */
