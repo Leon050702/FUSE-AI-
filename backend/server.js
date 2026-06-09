@@ -22,6 +22,9 @@ const PORT = process.env.PORT || 3001;
 const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const LARAVEL_BACKEND_URL = process.env.LARAVEL_BACKEND_URL || "";
+// Staging FUSE credentials (key + secret pair).
+const FUSE_SYSTEM_KEY = process.env.FUSE_SYSTEM_KEY || "";
+const FUSE_SYSTEM_SECRET = process.env.FUSE_SYSTEM_SECRET || "";
 const JWT_SECRET = process.env.JWT_SECRET || "";
 const JWT_EXPIRES_IN = "7d";
 
@@ -528,9 +531,16 @@ app.post("/api/submit", async (req, res) => {
   }
 
   try {
+    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+    // FUSE uses a key + secret pair. Default to X-API-Key / X-API-Secret headers
+    // (most common for key+secret auth). If the stakeholder specifies different
+    // header names (or a single Bearer token), change these lines to match.
+    if (FUSE_SYSTEM_KEY)    headers["X-API-Key"]    = FUSE_SYSTEM_KEY;
+    if (FUSE_SYSTEM_SECRET) headers["X-API-Secret"] = FUSE_SYSTEM_SECRET;
+
     const r = await fetch(LARAVEL_BACKEND_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
     const text = await r.text();
