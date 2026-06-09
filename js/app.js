@@ -60,6 +60,12 @@
         // ============================================
         // SENARAI SISTEM — dynamic rendering
         // ============================================
+        // Which row is currently being edited inline.
+        //   null            → no row in edit mode
+        //   '__new__'       → the blank "add new system" row (DAFTAR)
+        //   '<kod>'         → editing an existing system inline
+        let inlineEditKod = null;
+
         function renderSenaraiTable() {
             const tbody = document.getElementById('senarai-table-body');
             if (!tbody) return;
@@ -67,13 +73,23 @@
             const list = Object.values(systems);
             const countEl = document.getElementById('senarai-count');
 
-            if (list.length === 0) {
+            // Blank editable row at the top when adding a new system (DAFTAR).
+            if (inlineEditKod === '__new__') {
+                tbody.insertAdjacentHTML('beforeend', inlineEditRowHtml(null, list.length + 1));
+            }
+
+            if (list.length === 0 && inlineEditKod !== '__new__') {
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:40px;">Tiada sistem didaftar. Klik butang <strong>DAFTAR</strong> untuk menambah sistem baru.</td></tr>';
                 if (countEl) countEl.innerText = '0-0 of 0';
                 return;
             }
 
             list.forEach((s, idx) => {
+                if (s.kod === inlineEditKod) {
+                    // This row is being edited inline.
+                    tbody.insertAdjacentHTML('beforeend', inlineEditRowHtml(s, idx + 1));
+                    return;
+                }
                 const row = `
                     <tr style="cursor: pointer;" onclick="openSystem('${s.kod}')" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <td>${idx + 1}</td>
@@ -92,8 +108,75 @@
                 tbody.insertAdjacentHTML('beforeend', row);
             });
             if (countEl) countEl.innerText = `1-${list.length} of ${list.length}`;
+
+            // Focus the first editable field of whatever row just entered edit mode.
+            const focusEl = tbody.querySelector('.inline-edit-row input:not([disabled]), .inline-edit-row textarea');
+            if (focusEl) setTimeout(() => focusEl.focus(), 30);
+
             // Dashboard mirrors the same data, so refresh it whenever the senarai changes.
             if (typeof renderDashboard === 'function') renderDashboard();
+        }
+
+        // Builds one inline-editable row. `s` is the system (or null for a new row).
+        function inlineEditRowHtml(s, num) {
+            const isNew = !s;
+            const kod = s ? s.kod : '';
+            const nama = s ? (s.nama || '') : '';
+            const ket  = s ? (s.keterangan || '') : '';
+            // For a new row the Kod is editable; for an existing system it's the
+            // immutable key, so we show it as a disabled field (like the gov site).
+            const kodCell = isNew
+                ? `<input type="text" id="inline-kod" class="form-control inline-cell" placeholder="Cth: UTM5" maxlength="10" style="text-transform:uppercase; padding:6px 9px;">`
+                : `<input type="text" class="form-control inline-cell" value="${escapeHtml(kod)}" disabled style="background:#eef0f4; color:#64748b; padding:6px 9px;">`;
+            return `
+                <tr class="inline-edit-row" style="background:#fdf4ff;" onclick="event.stopPropagation();">
+                    <td>${num}</td>
+                    <td>${kodCell}</td>
+                    <td><input type="text" id="inline-nama" class="form-control inline-cell" value="${escapeHtml(nama)}" placeholder="Wajib Diisi" style="padding:6px 9px;"></td>
+                    <td><textarea id="inline-ket" class="form-control inline-cell" rows="2" placeholder="Wajib Diisi" style="padding:6px 9px; resize:vertical;">${escapeHtml(ket)}</textarea></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn act-open" data-tip="Simpan" onclick="event.stopPropagation(); saveInlineEdit()" style="color:#16a34a;">💾</button>
+                            <button class="action-btn act-del" data-tip="Batal" onclick="event.stopPropagation(); cancelInlineEdit()">✖️</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Save the inline row (new or edited) into `systems`, then re-render.
+        function saveInlineEdit() {
+            const namaEl = document.getElementById('inline-nama');
+            const ketEl  = document.getElementById('inline-ket');
+            const nama = (namaEl?.value || '').trim();
+            const keterangan = (ketEl?.value || '').trim();
+
+            if (inlineEditKod === '__new__') {
+                const kod = (document.getElementById('inline-kod')?.value || '').trim().toUpperCase();
+                if (!kod || !nama) { alert('Sila isi Kod Sistem dan Nama Sistem.'); return; }
+                if (systems[kod]) { alert(`Sistem dengan kod "${kod}" telah wujud. Sila guna kod lain.`); return; }
+                systems[kod] = createEmptySystem(kod, nama, keterangan);
+            } else {
+                const kod = inlineEditKod;
+                if (!nama) { alert('Sila isi Nama Sistem.'); return; }
+                if (!systems[kod]) { inlineEditKod = null; renderSenaraiTable(); return; }
+                systems[kod].nama = nama;
+                systems[kod].keterangan = keterangan;
+                // Keep the info panel in sync if this is the open system.
+                if (currentSystemCode === kod) {
+                    const n = document.getElementById('rp-nama'); if (n) n.innerText = nama;
+                    const k = document.getElementById('rp-ket');  if (k) k.innerText = keterangan || '-';
+                }
+            }
+
+            inlineEditKod = null;
+            renderSenaraiTable();
+            if (typeof fuseScheduleSave === 'function') fuseScheduleSave(0);
+        }
+
+        function cancelInlineEdit() {
+            inlineEditKod = null;
+            renderSenaraiTable();
         }
 
         // ============================================
@@ -333,6 +416,16 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
         let editingSystemKod = null;
 
         function openRegisterModal(kod = null) {
+            // DAFTAR (no kod) → add a blank editable row inline at the top of the
+            // senarai table, matching the gov FUSE site. Editing an existing
+            // system also goes inline via editSystem().
+            if (!kod) {
+                inlineEditKod = '__new__';
+                renderSenaraiTable();
+                document.getElementById('senarai-table-body')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                return;
+            }
             editingSystemKod = kod;
             const modal = document.getElementById('registerModal');
             const kodInput = document.getElementById('reg-kod');
@@ -358,7 +451,13 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
             setTimeout(() => kodInput.focus(), 50);
         }
 
-        function editSystem(kod) { openRegisterModal(kod); }
+        // Edit now happens INLINE in the senarai row (like the gov FUSE site)
+        // instead of opening the popup modal.
+        function editSystem(kod) {
+            if (!systems[kod]) return;
+            inlineEditKod = kod;
+            renderSenaraiTable();
+        }
 
         function closeRegisterModal() {
             document.getElementById('registerModal').style.display = 'none';

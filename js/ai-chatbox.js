@@ -188,7 +188,13 @@ async function aiSetLinkedSystem(kod) {
 // ----- Sidebar render ----------------------------------------------
 async function aiRefreshSidebar() {
   // Review mode (Laman Utama) shows a SYSTEMS list, not conversation history.
-  if (aiChatMode === 'review') { aiRenderSystemsSidebar(); return; }
+  // We still load the convo list first so each system can show whether it
+  // already has a saved review chat.
+  if (aiChatMode === 'review') {
+    aiConvoList = await aiApiListConvos();
+    aiRenderSystemsSidebar();
+    return;
+  }
 
   const list = document.getElementById('ai-convo-list');
   if (!list) return;
@@ -231,10 +237,17 @@ function aiRenderSystemsSidebar() {
     list.innerHTML = '<div class="ai-convo-empty">Tiada sistem didaftar. Sila daftar sistem di Analisis Sistem.</div>';
     return;
   }
+  // Which systems already have a saved review chat (so we can show a ● marker).
+  const chatKods = new Set((aiConvoList || []).map(c => c.system_kod).filter(Boolean));
   list.innerHTML = arr.map(s => {
     const active = (s.kod === aiLinkedSystemKod) ? ' active' : '';
+    // ● = has an ongoing chat for this system; dimmed ○ = no chat yet.
+    const dot = chatKods.has(s.kod)
+      ? '<span class="ai-sys-chatdot has" title="Ada chat tersimpan">●</span>'
+      : '<span class="ai-sys-chatdot" title="Belum ada chat">○</span>';
     return `
       <div class="ai-convo-item ai-sys-item${active}" onclick="aiFocusReviewSystem('${escapeHtml(s.kod)}')">
+        ${dot}
         <span class="ai-sys-item-kod">${escapeHtml(s.kod)}</span>
         <span class="title" title="${escapeHtml(s.nama || '')}">${escapeHtml(s.nama || '(tiada nama)')}</span>
       </div>
@@ -242,18 +255,51 @@ function aiRenderSystemsSidebar() {
   }).join('');
 }
 
-// User clicked a system in the review sidebar — focus it.
-function aiFocusReviewSystem(kod) {
-  aiLinkedSystemKod = (kod && window.systems && window.systems[kod]) ? kod : null;
-  aiRenderSystemsSidebar();   // update the active highlight
+// User clicked a system in the review sidebar — open THAT system's own chatbox.
+// Each system keeps one ongoing review conversation: if it already has one we
+// load its saved history; if not we create a fresh one and run the first review.
+async function aiFocusReviewSystem(kod) {
+  if (!(kod && window.systems && window.systems[kod])) return;
+  if (aiModalState === 'thinking') return;   // don't switch mid-stream
+
+  aiLinkedSystemKod = kod;
+  aiRenderSystemsSidebar();                   // highlight the picked system
   const sub = document.getElementById('ai-header-sub');
-  if (sub) {
-    sub.textContent = aiLinkedSystemKod
-      ? `Fokus: ${aiLinkedSystemKod} — taip permintaan anda`
-      : 'Semua sistem';
+  if (sub) sub.textContent = `Membuka chat sistem ${kod}…`;
+
+  // Find this system's existing review conversation (if any).
+  const existing = await aiFindSystemConvo(kod);
+  if (existing) {
+    // Reopen its saved chat (past review + any follow-up messages).
+    await aiSwitchConversation(existing.id);
+    return;
   }
-  const ta = document.getElementById('ai-textarea');
-  if (ta) ta.focus();
+
+  // No chat yet for this system → create one, link it, and run the first review.
+  const s = window.systems[kod];
+  aiConversation = [];
+  document.getElementById('ai-chat-area').innerHTML = '';
+  try {
+    const convo = await aiApiCreateConvo(`Semakan ${kod} — ${s.nama || ''}`.trim(), kod);
+    aiCurrentConvoId = convo.id;
+  } catch (_) {
+    aiCurrentConvoId = null;   // saving may fail (e.g. not logged in) — chat still works in-session
+  }
+  await aiRefreshSidebar();
+  aiRenderSystemsSidebar();
+
+  const autoMsg = `Sila semak kelengkapan sistem ${s.kod} (${s.nama || ''}) sahaja, dan laporkan bahagian yang sudah lengkap dan yang belum bagi sistem ini.`;
+  aiConversation.push({ role: 'user', content: autoMsg });
+  if (aiCurrentConvoId) aiApiAppendMessage(aiCurrentConvoId, 'user', autoMsg);
+  sendAIEstimate(autoMsg);
+}
+
+// Look up the saved review conversation linked to a given system code.
+// Returns the convo summary {id, title, system_kod, ...} or null.
+async function aiFindSystemConvo(kod) {
+  if (!aiHasToken()) return null;
+  const list = await aiApiListConvos();   // already filtered to mode=review
+  return list.find(c => c.system_kod === kod) || null;
 }
 
 // Inline rename: replace the title span with an input, Enter saves, Esc cancels.
@@ -352,8 +398,15 @@ async function aiSwitchConversation(id) {
     document.getElementById('ai-input-area').style.display = 'flex';
     document.getElementById('ai-done-actions')?.classList.remove('show');
     document.getElementById('ai-send-btn').disabled = false;
-    document.getElementById('ai-header-sub').textContent =
-      aiLinkedSystemKod ? `✦ Mengedit sistem ${aiLinkedSystemKod}` : (convo.title || 'Perbualan disambung semula');
+    document.getElementById('ai-header-sub').textContent = aiLinkedSystemKod
+      ? (aiChatMode === 'review' ? `Semakan sistem ${aiLinkedSystemKod}` : `✦ Mengedit sistem ${aiLinkedSystemKod}`)
+      : (convo.title || 'Perbualan disambung semula');
+
+    // In review mode, re-attach the hover "Pergi ke …" jumps to the report table
+    // so a reopened system chat keeps its clickable section rows.
+    if (aiChatMode === 'review' && aiLinkedSystemKod) {
+      aiAttachRowJumpsToLastReport(aiLinkedSystemKod);
+    }
 
     aiRefreshSidebar();          // update active highlight
     aiRefreshSystemDropdown();   // sync the dropdown to the loaded convo's link
@@ -1106,6 +1159,31 @@ window.aiGoToKosFpa = function(kod) {
   if (typeof switchPage === 'function') switchPage('page-data');
 };
 
+// Close the AI modal and jump straight to a specific MODULE/section of a system,
+// so from a Semak AI report the user can go directly to the part that needs work
+// without closing the chat and navigating back manually.
+//   section: 'fd' | 'ft' | 'vaf' | 'kos'   (kos = Kos Pengurusan)
+window.aiGoToSection = function(kod, section) {
+  // Make `kod` the active system (via the app's setter, not a raw write).
+  if (typeof window.setCurrentSystemCode === 'function') {
+    window.setCurrentSystemCode(kod);
+  } else if (kod && window.systems && window.systems[kod]) {
+    window.currentSystemCode = kod;
+  }
+  if (typeof closeAIModal === 'function') closeAIModal();
+  if (typeof switchSection === 'function') switchSection('analisis');
+
+  // FD / FT / VAF all live under the FPA page (tabbed); Kos Pengurusan is its
+  // own main page.
+  if (section === 'kos') {
+    if (typeof switchMainPage === 'function') switchMainPage('pengurusan');
+    return;
+  }
+  if (typeof switchMainPage === 'function') switchMainPage('fpa');
+  const tab = { fd: 'page-data', ft: 'page-trans', vaf: 'page-vaf' }[section] || 'page-data';
+  if (typeof switchPage === 'function') switchPage(tab);
+};
+
 // Map the chatbox backend payload to a FUSE AI v2 system entry and inject it into `systems`.
 // Backend payload shape:
 //   { nama, keterangan, FT_Sistem:[{macroproses,general_proses,aggregat,komponen,ft_multiplier,keterangan,...}],
@@ -1229,33 +1307,149 @@ function aiGenerateKodFromName(nama) {
   return base + Date.now().toString().slice(-3);
 }
 
-// Auto-trigger the review audit when the SEMAK AI chatbox opens — the user
-// shouldn't have to type "semak sistem saya". If there are no systems we skip
-// the API call and just say so directly.
+// When the SEMAK AI chatbox opens, DON'T audit immediately. Instead greet the
+// user and let them pick which system to review from the sidebar first.
 function aiAutoRunReview() {
   if (aiChatMode !== 'review') return;
-  // Guard: don't fire if a request is already in flight (e.g. opened twice fast).
   if (aiModalState === 'thinking') return;
 
-  const systemsCount = Object.values(window.systems || {}).length;
-  if (!systemsCount) {
+  const list = Object.values(window.systems || {});
+  if (!list.length) {
     addAIBubble('Belum ada sistem didaftarkan untuk disemak. Sila daftarkan sekurang-kurangnya satu sistem di **Analisis Sistem**, kemudian buka semula SEMAK AI.');
     document.getElementById('ai-header-sub').textContent = 'Tiada sistem untuk disemak';
     return;
   }
 
-  // Synthetic auto-prompt. sendAIEstimate(injectedMsg) treats this like the
-  // retry path: no textarea read, no user bubble re-render, message pushed to
-  // history and sent as a normal request — so the AI replies as usual.
+  // Greeting + clickable chooser so the user selects a system before any audit.
+  aiRenderReviewChooser(list);
+  document.getElementById('ai-header-sub').textContent = 'Pilih sistem untuk disemak';
+}
+
+// Render a "choose a system" prompt inside the chat: a short message plus one
+// clickable chip per system (and an "All systems" option). Clicking a chip runs
+// the review for that scope — the same path as clicking the sidebar item.
+function aiRenderReviewChooser(list) {
+  addAIBubble('Sila pilih sistem yang anda mahu saya semak kelengkapannya. Klik salah satu di bawah, atau pilih dari senarai sistem di sebelah kiri.');
+
+  const body = document.getElementById('ai-chat-area');
+  if (!body) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ai-chip-row';
+  wrap.id = 'ai-review-chooser';
+
+  list.forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'ai-chip';
+    chip.innerHTML = `<strong>${escapeHtml(s.kod)}</strong> · ${escapeHtml(s.nama || '(tiada nama)')}`;
+    chip.onclick = () => {
+      document.getElementById('ai-review-chooser')?.remove();
+      aiFocusReviewSystem(s.kod);   // focuses + runs review for THIS system only
+    };
+    wrap.appendChild(chip);
+  });
+
+  // "All systems" option — review everything at once.
+  if (list.length > 1) {
+    const allChip = document.createElement('div');
+    allChip.className = 'ai-chip';
+    allChip.style.cssText = 'background:#3d3175; color:#e9d5ff; font-weight:600;';
+    allChip.textContent = '📋 Semak SEMUA sistem';
+    allChip.onclick = () => {
+      document.getElementById('ai-review-chooser')?.remove();
+      aiRunReviewAllSystems();
+    };
+    wrap.appendChild(allChip);
+  }
+
+  body.appendChild(wrap);
+  body.scrollTop = body.scrollHeight;
+}
+
+// Make the section rows in the LAST review report clickable. We scan every
+// table row in the most-recent AI bubble; if a row's first cell names a known
+// section (Fungsi Data / Transaksi / VAF / Kos Pengurusan), we tag it so that
+// hovering reveals a "Pergi ke →" link that jumps straight to that page.
+function aiAttachRowJumpsToLastReport(kod) {
+  const area = document.getElementById('ai-chat-area');
+  if (!area) return;
+  // The report is the last AI bubble we just appended.
+  const bubbles = area.querySelectorAll('.ai-bubble.ai-msg');
+  const last = bubbles[bubbles.length - 1];
+  if (!last) return;
+
+  // Map a section to the text patterns that identify its row.
+  const SECTION_MATCHERS = [
+    { sec: 'fd',  re: /fungsi\s*data|\bFD\b/i },
+    { sec: 'ft',  re: /fungsi\s*transaksi|\bFT\b/i },
+    { sec: 'vaf', re: /\bVAF\b|general\s*system|gsc/i },
+    { sec: 'kos', re: /kos\s*pengurusan|pengurusan/i },
+  ];
+
+  const SECTION_NAMES = { fd: 'Fungsi Data', ft: 'Fungsi Transaksi', vaf: 'Konfigurasi VAF', kos: 'Kos Pengurusan' };
+
+  last.querySelectorAll('table.ai-md-table tbody tr').forEach(tr => {
+    const firstCell = tr.querySelector('td');
+    if (!firstCell) return;
+    const label = firstCell.textContent || '';
+    const match = SECTION_MATCHERS.find(m => m.re.test(label));
+    if (!match) return;
+
+    tr.classList.add('ai-jump-row');
+    tr.addEventListener('click', () => window.aiGoToSection(kod, match.sec));
+
+    // Floating "Pergi ke <section> →" popup that follows the cursor on hover.
+    const tipText = `Pergi ke ${SECTION_NAMES[match.sec]} →`;
+    tr.addEventListener('mouseenter', () => aiShowJumpTip(tipText));
+    tr.addEventListener('mousemove',  (e) => aiMoveJumpTip(e.clientX, e.clientY));
+    tr.addEventListener('mouseleave', () => aiHideJumpTip());
+  });
+}
+
+// ---- Floating jump tooltip (a single reusable element) -----------------
+let aiJumpTipEl = null;
+function aiEnsureJumpTip() {
+  if (aiJumpTipEl) return aiJumpTipEl;
+  aiJumpTipEl = document.createElement('div');
+  aiJumpTipEl.className = 'ai-jump-tip';
+  document.body.appendChild(aiJumpTipEl);
+  return aiJumpTipEl;
+}
+function aiShowJumpTip(text) {
+  const el = aiEnsureJumpTip();
+  el.textContent = text;
+  el.classList.add('show');
+}
+function aiMoveJumpTip(x, y) {
+  const el = aiEnsureJumpTip();
+  // Offset a little up/right of the cursor so it doesn't sit under the pointer.
+  el.style.left = (x + 14) + 'px';
+  el.style.top  = (y - 10) + 'px';
+}
+function aiHideJumpTip() {
+  if (aiJumpTipEl) aiJumpTipEl.classList.remove('show');
+}
+
+// Run the completeness audit for ALL systems (the previous default behaviour),
+// now only when the user explicitly chooses it.
+function aiRunReviewAllSystems() {
+  if (aiModalState === 'thinking') return;
+  aiLinkedSystemKod = null;            // no focus = all systems
+  aiRenderSystemsSidebar();
   const autoMsg = 'Sila semak kelengkapan SEMUA sistem yang telah didaftarkan, dan laporkan bahagian yang sudah lengkap dan yang belum bagi setiap sistem.';
   aiConversation.push({ role: 'user', content: autoMsg });
   sendAIEstimate(autoMsg);
 }
 
-// Build a plain-text snapshot of ALL the user's systems, for the review-mode
+// Build a plain-text snapshot of the user's systems, for the review-mode
 // completeness audit. The AI reads this to judge how complete each system is.
-function aiBuildAllSystemsContext() {
-  const list = Object.values(window.systems || {});
+// If `onlyKod` is given (a system focused in the sidebar), the snapshot — and
+// the AI's report — covers ONLY that system. Otherwise it covers ALL systems.
+function aiBuildAllSystemsContext(onlyKod = null) {
+  const all = Object.values(window.systems || {});
+  const list = (onlyKod && window.systems && window.systems[onlyKod])
+    ? [window.systems[onlyKod]]
+    : all;
   if (!list.length) {
     return `[KONTEKS — pengguna belum mendaftar sebarang sistem. Tiada sistem untuk disemak.]`;
   }
@@ -1275,11 +1469,15 @@ Konfigurasi VAF: ${vafSet ? 'sudah ditetapkan' : 'semua nilai 0 (KOSONG)'}
 Kos Pengurusan: ${pengRows.length} item ${pengRows.length ? 'didaftarkan' : '(KOSONG)'}`;
   }).join('\n\n');
 
-  return `[KONTEKS SISTEM — berikut adalah SEMUA sistem yang telah didaftarkan pengguna. Semak kelengkapan setiap satu berdasarkan data sebenar ini. JANGAN minta pengguna terangkan sistem baharu.
+  const scope = (onlyKod && window.systems && window.systems[onlyKod])
+    ? `HANYA sistem ${onlyKod} (${window.systems[onlyKod].nama || 'tiada nama'}) — pengguna sedang fokus pada sistem ini sahaja. Semak DAN laporkan SISTEM INI SAHAJA; JANGAN sebut atau semak sistem lain.`
+    : `SEMUA sistem yang telah didaftarkan pengguna. Semak kelengkapan setiap satu.`;
+
+  return `[KONTEKS SISTEM — berikut adalah ${scope} Berdasarkan data sebenar ini. JANGAN minta pengguna terangkan sistem baharu.
 
 ${blocks}
 
-ARAHAN: Hasilkan laporan kelengkapan untuk setiap sistem di atas mengikut format yang ditetapkan.]`;
+ARAHAN: Hasilkan laporan kelengkapan untuk ${onlyKod ? `sistem ${onlyKod} sahaja` : 'setiap sistem di atas'} mengikut format yang ditetapkan.]`;
 }
 
 // POST to /api/chat with streaming. Reads the SSE stream, calls onProgress with
@@ -1418,12 +1616,17 @@ async function sendAIEstimate(injectedMsg) {
     // This message is NOT persisted to chat_messages — it's only sent to the API.
     const messagesToSend = [...aiConversation];
 
-    // REVIEW MODE: inject a snapshot of ALL systems so the AI can audit them.
+    // REVIEW MODE: inject a snapshot so the AI can audit. If a system is focused
+    // in the sidebar, only that one is included; otherwise all systems.
     if (aiChatMode === 'review') {
-      messagesToSend.unshift({ role: 'user', content: aiBuildAllSystemsContext() });
+      const focusKod = (aiLinkedSystemKod && window.systems && window.systems[aiLinkedSystemKod])
+        ? aiLinkedSystemKod : null;
+      messagesToSend.unshift({ role: 'user', content: aiBuildAllSystemsContext(focusKod) });
       messagesToSend.splice(1, 0, {
         role: 'assistant',
-        content: 'Faham — saya akan semak kelengkapan semua sistem yang didaftarkan.'
+        content: focusKod
+          ? `Faham — saya akan semak kelengkapan sistem ${focusKod} sahaja.`
+          : 'Faham — saya akan semak kelengkapan semua sistem yang didaftarkan.'
       });
     } else if (aiLinkedSystemKod && window.systems && window.systems[aiLinkedSystemKod]) {
       const s = window.systems[aiLinkedSystemKod];
@@ -1516,6 +1719,13 @@ ARAHAN PENTING:
       if (data.truncated) {
         addAIBubble('⚠ Laporan mungkin tidak lengkap — terlalu panjang. Anda boleh minta semakan untuk sistem tertentu.');
       }
+      // If the report was for ONE focused system, make each section row in the
+      // generated table clickable: hovering a row (e.g. "Fungsi Data") reveals a
+      // "Pergi ke" link that jumps straight to that page for the system.
+      const focusKod = (aiLinkedSystemKod && window.systems && window.systems[aiLinkedSystemKod])
+        ? aiLinkedSystemKod : null;
+      if (focusKod) aiAttachRowJumpsToLastReport(focusKod);
+
       document.getElementById('ai-send-btn').disabled = false;
       aiModalState = 'idle';
       aiSetGenerating(false);

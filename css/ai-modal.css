@@ -399,6 +399,41 @@ body.ai-modal-is-open #ai-modal-card {
   background: rgba(255,255,255,0.04);
 }
 
+/* Review-report rows that link to a system module (FD/FT/VAF/Kos). The whole
+   row is clickable; hovering reveals a "Pergi ke →" hint and a purple accent. */
+.ai-bubble.ai-msg .ai-md-table tbody tr.ai-jump-row {
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.ai-bubble.ai-msg .ai-md-table tbody tr.ai-jump-row:hover {
+  background: rgba(124,58,237,0.22);
+  box-shadow: inset 3px 0 0 #a78bfa;        /* left accent bar on hover */
+}
+
+/* Floating "Pergi ke …" popup that follows the cursor over a jump row. */
+.ai-jump-tip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;                      /* never blocks the click */
+  background: #2d2456;
+  border: 1px solid #6d5cb8;
+  color: #ede9fe;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  padding: 5px 10px;
+  border-radius: 7px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.ai-jump-tip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .ai-thinking-dots { display:flex; gap:5px; padding:12px 14px; }
 .ai-thinking-dots span {
   width:7px;height:7px;border-radius:50%;background:#a78bfa;
@@ -750,6 +785,15 @@ body.ai-modal-is-open #ai-modal-card {
   letter-spacing: 0.3px;
 }
 .ai-sys-item.active .ai-sys-item-kod { background: #7c66c9; color: #fff; }
+/* Chat-status dot: ● (filled green) = has a saved chat, ○ (dim) = none yet. */
+.ai-sys-chatdot {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: #5b5478;            /* dim ○ when no chat */
+  width: 12px;
+  text-align: center;
+}
+.ai-sys-chatdot.has { color: #4ade80; }   /* green ● when a chat exists */
 
 .ai-convo-item .del-btn,
 .ai-convo-item .rename-btn {
@@ -851,12 +895,17 @@ body.ai-modal-is-open #ai-modal-card {
   padding: 5px;
   z-index: 50;
   display: none;
-  animation: ai-sysdd-pop 0.14s ease;
+  transform-origin: top right;
 }
-.ai-sysdd-menu.open { display: block; }
+/* Match the AI-chat feel: a smooth slide-up + soft scale, same easing/timing
+   family as the chat bubbles' `ai-slideUp 0.25s`. */
+.ai-sysdd-menu.open {
+  display: block;
+  animation: ai-sysdd-pop 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
 @keyframes ai-sysdd-pop {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
 }
 
 /* Each option row */
@@ -871,6 +920,21 @@ body.ai-modal-is-open #ai-modal-card {
   font-family: 'Inter', sans-serif;
   color: #d8d4ec;
   transition: background 0.12s;
+}
+/* Rows cascade in like AI-chat messages when the menu opens. The 6 nth-child
+   delays stagger the first rows; later rows just share the last delay. */
+.ai-sysdd-menu.open .ai-sysdd-item {
+  animation: ai-sysdd-rowin 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.ai-sysdd-menu.open .ai-sysdd-item:nth-child(1) { animation-delay: 0.02s; }
+.ai-sysdd-menu.open .ai-sysdd-item:nth-child(2) { animation-delay: 0.05s; }
+.ai-sysdd-menu.open .ai-sysdd-item:nth-child(3) { animation-delay: 0.08s; }
+.ai-sysdd-menu.open .ai-sysdd-item:nth-child(4) { animation-delay: 0.11s; }
+.ai-sysdd-menu.open .ai-sysdd-item:nth-child(5) { animation-delay: 0.14s; }
+.ai-sysdd-menu.open .ai-sysdd-item:nth-child(n+6) { animation-delay: 0.16s; }
+@keyframes ai-sysdd-rowin {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 .ai-sysdd-item:hover { background: #3a2f70; }
 .ai-sysdd-item.selected {
