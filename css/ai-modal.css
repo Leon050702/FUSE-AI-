@@ -1,6 +1,28 @@
 @keyframes ai-fadeIn { from{opacity:0} to{opacity:1} }
-@keyframes ai-slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+@keyframes ai-slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 @keyframes ai-blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+/* Natural chat-bubble entrances: AI grows in from the left edge, the user's
+   from the right — like real messaging apps. Slight scale + soft overshoot. */
+@keyframes ai-bubble-in {
+  from { opacity:0; transform: translateY(10px) translateX(-6px) scale(0.97); }
+  60%  { opacity:1; }
+  to   { opacity:1; transform: translateY(0) translateX(0) scale(1); }
+}
+@keyframes ai-bubble-in-user {
+  from { opacity:0; transform: translateY(10px) translateX(6px) scale(0.97); }
+  60%  { opacity:1; }
+  to   { opacity:1; transform: translateY(0) translateX(0) scale(1); }
+}
+/* Avatar softly pops in next to its bubble. */
+@keyframes ai-avatar-in {
+  from { opacity:0; transform: scale(0.6); }
+  to   { opacity:1; transform: scale(1); }
+}
+/* Typing indicator: dots bounce like a real "typing…" wave, not just blink. */
+@keyframes ai-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity:0.45; }
+  30%           { transform: translateY(-5px); opacity:1; }
+}
 @keyframes ai-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes ai-drift { 0%{transform:translateY(0) translateX(0)} 33%{transform:translateY(-10px) translateX(6px)} 66%{transform:translateY(5px) translateX(-6px)} 100%{transform:translateY(0) translateX(0)} }
 @keyframes ai-pulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.15)} }
@@ -69,12 +91,14 @@
   height: var(--ai-source-height);
   border-radius: var(--ai-source-radius);
   background: linear-gradient(135deg, #1e1b3a, #2a1a4a);
+  /* CLOSE path (base state): clean ease-out, NO overshoot — the box shrinks
+     smoothly into the pill without bulging past it. */
   transition:
-    left 0.72s cubic-bezier(.68, -.55, .265, 1.55),
-    top 0.72s cubic-bezier(.68, -.55, .265, 1.55),
-    width 0.72s cubic-bezier(.68, -.55, .265, 1.55),
-    height 0.72s cubic-bezier(.68, -.55, .265, 1.55),
-    border-radius 0.72s cubic-bezier(.68, -.55, .265, 1.55),
+    left 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    top 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.5s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.32s ease;
 }
 #ai-goo-bg.open .ai-main-blob {
@@ -84,6 +108,14 @@
   height: var(--ai-panel-height);
   border-radius: 18px;
   background: rgba(18,14,38,0.95);
+  /* OPEN path: keep the springy liquid expansion. */
+  transition:
+    left 0.72s cubic-bezier(.68, -.55, .265, 1.55),
+    top 0.72s cubic-bezier(.68, -.55, .265, 1.55),
+    width 0.72s cubic-bezier(.68, -.55, .265, 1.55),
+    height 0.72s cubic-bezier(.68, -.55, .265, 1.55),
+    border-radius 0.72s cubic-bezier(.68, -.55, .265, 1.55),
+    background 0.32s ease;
 }
 
 /* The 3 trailing particles — stacked behind the main blob when closed,
@@ -93,11 +125,17 @@
   left: calc(var(--ai-source-left) + (var(--ai-source-width) / 2) - 20px);
   top: calc(var(--ai-source-top) + (var(--ai-source-height) / 2) - 20px);
   border-radius: 50%;
+  /* CLOSE path (base state): NO transition — particles snap home invisibly
+     instead of flying back across the screen as gooey "excess shapes". */
+  transition: none;
+  opacity: 1;
+}
+/* OPEN path: particles shoot outward with the springy curve (unchanged). */
+#ai-goo-bg.open .ai-particle-blob {
   transition: left 0.7s cubic-bezier(.68, -.55, .265, 1.55),
               top 0.7s cubic-bezier(.68, -.55, .265, 1.55),
               transform 0.7s cubic-bezier(.68, -.55, .265, 1.55),
               opacity 0.5s ease-out;
-  opacity: 1;
 }
 .ai-particle-blob.p1 { width: 44px; height: 44px; background: #c51196; }
 .ai-particle-blob.p2 { width: 34px; height: 34px; background: #a78bfa; }
@@ -134,10 +172,12 @@
   opacity: 0;
   transform: scale(var(--ai-card-scale));
   transform-origin: var(--ai-card-origin-x) var(--ai-card-origin-y);
+  /* CLOSE path (base state): content fades out FAST (so the squished UI is
+     never seen) while the card shrinks with a clean, no-overshoot curve. */
   transition:
-    opacity 0.28s ease,
-    transform 0.68s cubic-bezier(.68, -.55, .265, 1.55),
-    visibility 0s 0.68s;
+    opacity 0.16s ease,
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s 0.5s;
   display: flex;       /* always flex so the inner layout works */
   visibility: hidden;
   will-change: transform, opacity;
@@ -152,6 +192,20 @@ body.ai-modal-is-open #ai-modal-card {
     opacity 0.22s 0.32s ease,
     transform 0.68s cubic-bezier(.68, -.55, .265, 1.55),
     visibility 0s;
+}
+
+/* Quick close (used when navigating away via a "Pergi ke" jump): the box
+   fades + settles down slightly IN PLACE — no morph back to the pill, since
+   the pill belongs to a page we're leaving. */
+#ai-modal-card.quick-close {
+  opacity: 0 !important;
+  transform: scale(0.97) translateY(8px) !important;
+  transition: opacity 0.26s ease,
+              transform 0.32s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+#ai-goo-bg.quick-fade {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
 }
 
 /* aurora orbs */
@@ -256,6 +310,7 @@ body.ai-modal-is-open #ai-modal-card {
   flex:1; overflow-y:auto; padding:18px 20px;
   display:flex; flex-direction:column; gap:14px;
   position:relative; z-index:1;
+  scroll-behavior:smooth;             /* new messages glide into view */
   scrollbar-width:thin; scrollbar-color:rgba(167,139,250,0.45) transparent;
 }
 /* Themed scrollbar — Chrome / Edge / Safari. */
@@ -296,7 +351,17 @@ body.ai-modal-is-open #ai-modal-card {
 .ai-bubble {
   max-width:75%; padding:10px 14px; font-size:13px;
   line-height:1.6; font-family:'Inter',sans-serif;
-  animation:ai-slideUp 0.25s ease;
+  /* Spring-feel ease-out: starts quick, settles gently — reads as natural. */
+  animation: ai-bubble-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: left bottom;
+}
+.ai-bubble.user-msg {
+  animation-name: ai-bubble-in-user;
+  transform-origin: right bottom;
+}
+/* Avatars pop in alongside their bubble, a touch faster so they lead. */
+.ai-bubble-wrap .ai-bubble-avatar {
+  animation: ai-avatar-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 .ai-bubble.ai-msg {
   background:rgba(255,255,255,0.08);
@@ -434,13 +499,14 @@ body.ai-modal-is-open #ai-modal-card {
   transform: translateY(0);
 }
 
-.ai-thinking-dots { display:flex; gap:5px; padding:12px 14px; }
+.ai-thinking-dots { display:flex; gap:5px; padding:12px 14px; align-items:flex-end; }
 .ai-thinking-dots span {
   width:7px;height:7px;border-radius:50%;background:#a78bfa;
-  animation:ai-blink 1.2s ease-in-out infinite;
+  /* Wave-bounce like a real "typing…" indicator instead of a flat blink. */
+  animation: ai-typing-bounce 1.15s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
-.ai-thinking-dots span:nth-child(2){animation-delay:0.2s;}
-.ai-thinking-dots span:nth-child(3){animation-delay:0.4s;}
+.ai-thinking-dots span:nth-child(2){animation-delay:0.15s;}
+.ai-thinking-dots span:nth-child(3){animation-delay:0.3s;}
 
 .ai-thinking-label {
   color:#a78bfa; font-size:11px; font-family:'Inter',sans-serif;
@@ -609,7 +675,7 @@ body.ai-modal-is-open #ai-modal-card {
 .ai-result-card {
   background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3);
   border-radius:10px; padding:12px 14px;
-  animation:ai-slideUp 0.35s ease;
+  animation: ai-slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .ai-result-card .result-title { color:#6ee7b7; font-size:13px; font-weight:600; font-family:'Inter',sans-serif; margin-bottom:8px; }
 .ai-result-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
@@ -620,9 +686,22 @@ body.ai-modal-is-open #ai-modal-card {
 .ai-chip {
   background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.3);
   color:#c4b5fd; font-size:12px; font-family:'Inter',sans-serif;
-  padding:5px 12px; border-radius:20px; cursor:pointer; transition:background 0.2s;
+  padding:5px 12px; border-radius:20px; cursor:pointer;
+  transition: background 0.2s, transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1), border-color 0.2s;
+  animation: ai-slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.ai-chip:hover { background:rgba(124,58,237,0.3); }
+/* Chips cascade in one after another. */
+.ai-chip:nth-child(1) { animation-delay: 0.03s; }
+.ai-chip:nth-child(2) { animation-delay: 0.08s; }
+.ai-chip:nth-child(3) { animation-delay: 0.13s; }
+.ai-chip:nth-child(4) { animation-delay: 0.18s; }
+.ai-chip:nth-child(n+5) { animation-delay: 0.22s; }
+.ai-chip:hover {
+  background:rgba(124,58,237,0.3);
+  border-color:rgba(167,139,250,0.55);
+  transform: translateY(-1px);       /* gentle lift on hover */
+}
+.ai-chip:active { transform: translateY(0) scale(0.97); }   /* press-down feedback */
 
 #ai-input-area {
   padding:14px 18px; border-top:1px solid rgba(255,255,255,0.07);
@@ -896,6 +975,15 @@ body.ai-modal-is-open #ai-modal-card {
   z-index: 50;
   display: none;
   transform-origin: top right;
+  /* Scrollbar fully hidden — the list still scrolls with the wheel/trackpad,
+     there's just no visible slider popping in over the dark panel. */
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* old Edge/IE */
+}
+/* WebKit (Chrome/Edge): hide the dropdown's scrollbar entirely */
+.ai-sysdd-menu::-webkit-scrollbar {
+  display: none;
+  width: 0;
 }
 /* Match the AI-chat feel: a smooth slide-up + soft scale, same easing/timing
    family as the chat bubbles' `ai-slideUp 0.25s`. */
@@ -1000,3 +1088,13 @@ body.ai-modal-is-open #ai-modal-card {
 /* Close handled by removing .active — CSS transitions on
    #ai-modal-card shrink the panel back to 64×64 at bottom-right.
    No keyframes needed. */
+
+/* Accessibility: users with "reduce motion" enabled get instant, calm UI —
+   entrances are skipped but nothing breaks. */
+@media (prefers-reduced-motion: reduce) {
+  .ai-bubble, .ai-bubble-wrap .ai-bubble-avatar, .ai-chip,
+  .ai-result-card, .ai-sysdd-menu.open, .ai-sysdd-menu.open .ai-sysdd-item {
+    animation: none !important;
+  }
+  #ai-chat-area { scroll-behavior: auto; }
+}

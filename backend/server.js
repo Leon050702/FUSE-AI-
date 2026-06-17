@@ -12,6 +12,7 @@ const cors = require("cors");
 const OpenAI = require("openai");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const { refFtAsTable, refFdAsTable, validatePayload } = require("./ref-tables");
 const dbApi = require("./db");
@@ -22,9 +23,12 @@ const PORT = process.env.PORT || 3001;
 const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const LARAVEL_BACKEND_URL = process.env.LARAVEL_BACKEND_URL || "";
-// Staging FUSE credentials (key + secret pair).
+// Staging FUSE credentials + endpoints (see 01_positive_token_issue.py).
 const FUSE_SYSTEM_KEY = process.env.FUSE_SYSTEM_KEY || "";
 const FUSE_SYSTEM_SECRET = process.env.FUSE_SYSTEM_SECRET || "";
+const FUSE_BASE_URL = process.env.FUSE_BASE_URL || "";
+const FUSE_TOKEN_PATH = process.env.FUSE_TOKEN_PATH || "/api/v1/smartfuse-api/token";
+const FUSE_SUBMIT_PATH = process.env.FUSE_SUBMIT_PATH || "";
 const JWT_SECRET = process.env.JWT_SECRET || "";
 const JWT_EXPIRES_IN = "7d";
 
@@ -401,7 +405,10 @@ app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     model: MODEL,
-    laravel_configured: !!LARAVEL_BACKEND_URL,
+    // "configured" = the full submit path is known. Token auth alone is ready
+    // once base URL + credentials exist.
+    laravel_configured: !!(FUSE_BASE_URL && FUSE_SUBMIT_PATH) || !!LARAVEL_BACKEND_URL,
+    fuse_token_ready: !!(FUSE_BASE_URL && FUSE_SYSTEM_KEY && FUSE_SYSTEM_SECRET),
     timestamp: new Date().toISOString(),
   });
 });
@@ -513,7 +520,57 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Forward a validated payload to the Laravel backend.
+// ============================================================
+// FUSE STAGING AUTH — HMAC-signed requests + token cache
+// (flow mirrors the stakeholder's 01_positive_token_issue.py)
+// ============================================================
+function fuseIsoTimestamp() {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+function fuseSignature(method, path, timestamp, rawBody) {
+  const baseString = `${method}\n${path}\n${timestamp}\n${rawBody}`;
+  return crypto.createHmac("sha256", FUSE_SYSTEM_SECRET).update(baseString, "utf8").digest("hex");
+}
+
+// Signed POST to the FUSE API. Adds the Bearer token too when provided
+// (the token request itself has none).
+async function fuseSignedPost(path, payload, bearerToken) {
+  const rawBody = JSON.stringify(payload);
+  const timestamp = fuseIsoTimestamp();
+  const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "X-System-Key": FUSE_SYSTEM_KEY,
+    "X-Timestamp": timestamp,
+    "X-Signature": fuseSignature("POST", path, timestamp, rawBody),
+  };
+  if (bearerToken) headers["Authorization"] = `Bearer ${bearerToken}`;
+  const r = await fetch(FUSE_BASE_URL + path, { method: "POST", headers, body: rawBody });
+  const text = await r.text();
+  let data; try { data = JSON.parse(text); } catch (_) { data = { raw: text }; }
+  return { status: r.status, ok: r.ok, data };
+}
+
+// Token cache — reuse until ~1 min before expiry.
+let fuseToken = null;
+let fuseTokenExpiry = 0;
+
+async function fuseGetToken() {
+  if (fuseToken && Date.now() < fuseTokenExpiry - 60_000) return fuseToken;
+  const r = await fuseSignedPost(FUSE_TOKEN_PATH, {});
+  const tok = r.data?.data?.access_token;
+  if (!r.ok || !tok) {
+    throw new Error(`Token request failed (HTTP ${r.status}): ${r.data?.message || "no token in response"}`);
+  }
+  fuseToken = tok;
+  const exp = Date.parse(r.data?.data?.expires_at || "");
+  fuseTokenExpiry = Number.isFinite(exp) ? exp : Date.now() + 10 * 60_000;
+  console.log(`🔑 FUSE token issued, expires ${r.data?.data?.expires_at}`);
+  return fuseToken;
+}
+
+// Forward a validated payload to the real FUSE staging system.
 // Body: { payload: {...} }
 app.post("/api/submit", async (req, res) => {
   const payload = req.body?.payload;
@@ -524,33 +581,45 @@ app.post("/api/submit", async (req, res) => {
     return res.status(400).json({ error: "Payload tidak lulus pengesahan.", details: v.errors });
   }
 
+  // New FUSE flow (token + signed request), per the stakeholder's 02 script.
+  if (FUSE_BASE_URL && FUSE_SUBMIT_PATH) {
+    try {
+      // Staging requires a registered user_id (Adam=253, Leong=255, Nazhan=256).
+      // Stamp ours over whatever the AI generated (it defaults to 2 locally).
+      const fuseUserId = Number(process.env.FUSE_USER_ID);
+      if (Number.isFinite(fuseUserId) && fuseUserId > 0) payload.user_id = fuseUserId;
+
+      const token = await fuseGetToken();
+      const r = await fuseSignedPost(FUSE_SUBMIT_PATH, payload, token);
+      if (!r.ok) {
+        return res.status(r.status).json({ error: "FUSE staging menolak payload.", details: r.data });
+      }
+      return res.json({ ok: true, fuse_response: r.data });
+    } catch (err) {
+      console.error("Submit to FUSE staging failed:", err);
+      return res.status(502).json({ error: "Tidak dapat hantar ke FUSE staging.", details: err.message });
+    }
+  }
+
   if (!LARAVEL_BACKEND_URL) {
     return res.status(503).json({
-      error: "LARAVEL_BACKEND_URL belum ditetapkan dalam .env. Sila set untuk hantar ke FUSE-AI.",
+      error: "FUSE_SUBMIT_PATH belum ditetapkan dalam .env (endpoint penghantaran FT/FD belum diberi oleh pihak FUSE). Token endpoint sudah berfungsi — minta path penghantaran daripada stakeholder.",
     });
   }
 
+  // Legacy fallback: direct POST to a fixed URL.
   try {
-    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
-    // FUSE uses a key + secret pair. Default to X-API-Key / X-API-Secret headers
-    // (most common for key+secret auth). If the stakeholder specifies different
-    // header names (or a single Bearer token), change these lines to match.
-    if (FUSE_SYSTEM_KEY)    headers["X-API-Key"]    = FUSE_SYSTEM_KEY;
-    if (FUSE_SYSTEM_SECRET) headers["X-API-Secret"] = FUSE_SYSTEM_SECRET;
-
     const r = await fetch(LARAVEL_BACKEND_URL, {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(payload),
     });
     const text = await r.text();
     let data; try { data = JSON.parse(text); } catch (_) { data = { raw: text }; }
-
     if (!r.ok) {
       return res.status(r.status).json({ error: "Laravel menolak payload.", details: data });
     }
     res.json({ ok: true, laravel_response: data });
-
   } catch (err) {
     console.error("Forward to Laravel failed:", err);
     res.status(502).json({ error: "Tidak dapat hubungi Laravel backend.", details: err.message });
@@ -785,5 +854,6 @@ app.listen(PORT, () => {
   console.log(`✅ FUSE-AI Chatbox backend listening on http://localhost:${PORT}`);
   console.log(`   Model:           ${MODEL}`);
   console.log(`   Allowed origin:  ${ALLOWED_ORIGIN}`);
-  console.log(`   Laravel target:  ${LARAVEL_BACKEND_URL || "(not set)"}`);
+  console.log(`   FUSE staging:    ${FUSE_BASE_URL ? FUSE_BASE_URL + (FUSE_SUBMIT_PATH || " (submit path NOT set — token only)") : "(not configured)"}`);
+  console.log(`   Legacy target:   ${LARAVEL_BACKEND_URL || "(not set)"}`);
 });

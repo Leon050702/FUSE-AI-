@@ -303,6 +303,40 @@
             font-size: 13px;
             box-sizing: border-box;
             background: white;
+            /* Smooth, natural feedback on hover/focus (matches the AI chat feel) */
+            transition: border-color 0.2s ease,
+                        box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
+        }
+        .form-control:hover:not(:disabled) {
+            border-color: #b81cbb;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #b81cbb;
+            box-shadow: 0 0 0 3px rgba(184, 28, 187, 0.12);
+        }
+        /* Selects get a gentle lift on hover so opening feels responsive */
+        select.form-control:hover:not(:disabled),
+        .search-box select:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(184, 28, 187, 0.10);
+            cursor: pointer;
+        }
+        select.form-control:active {
+            transform: translateY(0);
+        }
+        .search-box input,
+        .search-box select {
+            transition: border-color 0.2s ease,
+                        box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
+        }
+        .search-box input:focus,
+        .search-box select:focus {
+            outline: none;
+            border-color: #b81cbb;
+            box-shadow: 0 0 0 3px rgba(184, 28, 187, 0.12);
         }
 
         .form-control:disabled {
@@ -1444,4 +1478,125 @@
 .ai-toast.show {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
+}
+
+/* ============================================================
+   UI POLISH LAYER — small details for a smoother, cleaner feel
+   (appended last so it refines the rules above)
+   ============================================================ */
+
+/* 1 ── Page transitions: content rises in softly instead of just blinking. */
+.page-section.active {
+    animation: pageIn 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pageIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 2 ── Buttons: tactile hover lift + press-down, consistent everywhere. */
+.btn-kembali,
+.btn-outline {
+    transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1),
+                box-shadow 0.2s ease,
+                background 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease;
+}
+.btn-kembali:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(30, 33, 51, 0.25);
+}
+.btn-outline:hover {
+    transform: translateY(-1px);
+    border-color: #b81cbb;
+    color: #b81cbb;
+    box-shadow: 0 3px 10px rgba(184, 28, 187, 0.12);
+}
+.btn-kembali:active,
+.btn-outline:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: none;
+}
+
+/* 3 ── Tabs: springy pill slide + a gentle hover tint before selecting. */
+.tab {
+    transition: background 0.25s ease, color 0.25s ease,
+                box-shadow 0.25s ease,
+                transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.tab:hover:not(.active) {
+    background: rgba(184, 28, 187, 0.08);
+    color: #b81cbb;
+}
+.tab:active { transform: scale(0.96); }
+
+/* 4 ── Action icon buttons (🔗 ✏️ 🗑️): pop slightly on hover. */
+.action-btn {
+    transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1),
+                background 0.2s ease, border-color 0.2s ease,
+                box-shadow 0.2s ease;
+}
+.action-btn:hover {
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+.action-btn:active { transform: translateY(0) scale(0.95); }
+
+/* 5 ── Sidebar nav: items glide right a touch on hover; smooth color shift. */
+.nav-item { transition: background 0.2s ease, color 0.2s ease, padding-left 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.nav-item:hover { padding-left: 24px; }
+.sub-nav { transition: color 0.2s ease, padding-left 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.sub-nav:hover:not(.active) { color: var(--fuse-navy); padding-left: 54px; }
+
+/* 6 ── Tables: rows shade in smoothly instead of snapping.
+   Scoped to the light-themed main content ONLY — must not touch the dark
+   tables inside the AI chat modal (it made their rows flash white on hover). */
+.main-wrapper tbody tr { transition: background 0.18s ease, box-shadow 0.18s ease; }
+.main-wrapper table tbody tr:hover td { background: #f8fafc; }
+
+/* 7 ── Cards: a hair of depth, soft and layered (barely-there, not heavy). */
+.card {
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04),
+                0 4px 16px rgba(16, 24, 40, 0.05);
+    border: 1px solid rgba(229, 231, 235, 0.7);
+    transition: box-shadow 0.25s ease;
+}
+
+/* 8 ── Modals: content scales up softly when a modal opens. */
+.modal-overlay { animation: overlayIn 0.22s ease; }
+.modal-overlay .modal-content { animation: modalIn 0.34s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 9 ── Scrollbars: slim + neutral on the light theme (Chrome/Edge + Firefox). */
+.main-wrapper { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; scroll-behavior: smooth; }
+.main-wrapper::-webkit-scrollbar { width: 8px; }
+.main-wrapper::-webkit-scrollbar-track { background: transparent; }
+.main-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+.main-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* 10 ── Keyboard accessibility: a clear, branded focus ring (mouse clicks
+        don't show it — only Tab navigation does). */
+button:focus-visible,
+.tab:focus-visible,
+.nav-item:focus-visible,
+a:focus-visible {
+    outline: 2px solid #b81cbb;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* 11 ── Inline-edit row (Senarai Sistem): ease in instead of appearing. */
+tr.inline-edit-row { animation: pageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* 12 ── Respect reduced-motion for the whole app. */
+@media (prefers-reduced-motion: reduce) {
+    .page-section.active, .modal-overlay, .modal-overlay .modal-content,
+    tr.inline-edit-row { animation: none; }
+    .main-wrapper { scroll-behavior: auto; }
+    .nav-item, .sub-nav, .tab, .btn-kembali, .btn-outline, .action-btn { transition: none; }
 }

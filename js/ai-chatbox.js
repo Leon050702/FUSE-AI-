@@ -495,6 +495,8 @@ function setAIModalShellOpen(isOpen) {
     requestAnimationFrame(() => gooBg?.classList.add('open'));
   } else {
     gooBg?.classList.remove('open');
+    // Hide the goo layer AS the shrink lands (close transition = 0.5s) so the
+    // dark blob never sits frozen over the real pill button.
     aiModalCloseTimer = setTimeout(() => {
       gooBg?.classList.remove('visible');
       const sourceBtn = window.aiModalSourceButton;
@@ -503,7 +505,7 @@ function setAIModalShellOpen(isOpen) {
         sourceBtn.classList.add('ai-pill-rebound');
         setTimeout(() => sourceBtn.classList.remove('ai-pill-rebound'), 720);
       }
-    }, 760);
+    }, 440);
   }
 }
 
@@ -621,6 +623,39 @@ function closeAIModal() {
   setParticles(false);
   // Safety: stop the logo flow in case the modal was closed mid-request.
   aiSetGenerating(false);
+}
+
+// Quick close used when the modal is closed BECAUSE we are navigating to a
+// different page (e.g. the "Pergi ke" section jumps). The normal close morphs
+// back to the source pill — but mid-navigation that pill is gone/moved, so the
+// box would shrink to a stale spot. Instead: fade + settle out in place.
+function closeAIModalQuick() {
+  const overlay = document.getElementById('ai-modal-overlay');
+  const gooBg   = document.getElementById('ai-goo-bg');
+  const gooContent = document.getElementById('ai-goo-content');
+  const card = document.getElementById('ai-modal-card');
+
+  clearTimeout(aiModalCloseTimer);
+
+  // Freeze the goo panel where it is (keep .open so it doesn't morph) and
+  // fade everything out in place.
+  card?.classList.add('quick-close');
+  gooBg?.classList.add('quick-fade');
+  overlay?.classList.remove('active');
+  document.body.classList.remove('ai-modal-is-open');
+
+  // Source pill: just reset its state — no rebound (it's on another page now).
+  window.aiModalSourceButton?.classList.remove('ai-pill-morphing', 'is-active', 'ai-pill-rebound');
+
+  setParticles(false);
+  aiSetGenerating(false);
+
+  // After the fade completes, fully reset the shell to its closed state.
+  aiModalCloseTimer = setTimeout(() => {
+    gooBg?.classList.remove('open', 'visible', 'quick-fade');
+    gooContent?.classList.remove('open');
+    card?.classList.remove('active', 'quick-close');
+  }, 340);
 }
 
 // keep old fn names working
@@ -1149,7 +1184,7 @@ window.aiGoToKosFpa = function(kod) {
   } else if (kod && window.systems && window.systems[kod]) {
     window.currentSystemCode = kod;   // fallback (older app.js)
   }
-  if (typeof closeAIModal === 'function') closeAIModal();
+  closeAIModalQuick();   // in-place fade — we're navigating away from the pill's page
   // switchMainPage('fpa') needs currentSystemCode set; switchSection mirrors
   // what the "Kos FPA" sidebar item does.
   if (typeof switchMainPage === 'function') switchMainPage('fpa');
@@ -1170,7 +1205,9 @@ window.aiGoToSection = function(kod, section) {
   } else if (kod && window.systems && window.systems[kod]) {
     window.currentSystemCode = kod;
   }
-  if (typeof closeAIModal === 'function') closeAIModal();
+  // Fade out in place — the pill-morph close would shrink toward a button on
+  // the page we're leaving (it lands in a "strange place" mid-navigation).
+  closeAIModalQuick();
   if (typeof switchSection === 'function') switchSection('analisis');
 
   // FD / FT / VAF all live under the FPA page (tabbed); Kos Pengurusan is its
