@@ -26,7 +26,7 @@ script(s) that implement it, so you can jump from the design report straight to 
 
 | Module | Frontend / Implementation Script |
 |--------|----------------------------------|
-| 3.1 AI Chat Interface Module | [ai-chatbox.js](js/ai-chatbox.js) · [dropdown](js/ai-chatbox.js#L152) · [conversation load](js/ai-chatbox.js#L343) |
+| 3.1 AI Chat Interface Module | [ai-chatbox.js](frontend/js/ai-chatbox.js) · [dropdown](frontend/js/ai-chatbox.js#L152) · [conversation load](frontend/js/ai-chatbox.js#L343) |
 | 3.2 FPA Classification Module | [ref-tables.js](backend/ref-tables.js) · [REF_FT](backend/ref-tables.js#L19) · [REF_FD](backend/ref-tables.js#L55) · [validatePayload](backend/ref-tables.js#L99) |
 | 3.3 AI Processing Engine Module | [server.js](backend/server.js) · [system prompt](backend/server.js#L58) · [/api/chat](backend/server.js#L419) · [extractJson](backend/server.js#L383) |
 
@@ -34,16 +34,16 @@ script(s) that implement it, so you can jump from the design report straight to 
 
 | Module | Frontend / Implementation Script |
 |--------|----------------------------------|
-| 4.1 Interactive AI Assistant Interface Module | [ai-assist.js](js/ai-assist.js) |
+| 4.1 Interactive AI Assistant Interface Module | [ai-assist.js](frontend/js/ai-assist.js) |
 | 4.2 AI Analysis Execution Module | [server.js](backend/server.js#L419) · [ref-tables.js](backend/ref-tables.js) |
-| 4.3 Automated Data Mapping Module | [ai-chatbox.js](js/ai-chatbox.js) · [db.js](backend/db.js) |
+| 4.3 Automated Data Mapping Module | [ai-chatbox.js](frontend/js/ai-chatbox.js) · [db.js](backend/db.js) |
 
 ### 5.0 Frontend Integration & UI Subsystem — Muhammad Adam Afifin Bin Sani Amril
 
 | Module | Frontend / Implementation Script |
 |--------|----------------------------------|
-| 5.1 AI Gateway & Routing Module | [ai-chatbox.js](js/ai-chatbox.js) · [app.js](js/app.js) |
-| 5.2 Data Transformation & Response Handling Module | [ai-chatbox.js](js/ai-chatbox.js) · [server.js](backend/server.js#L383) |
+| 5.1 AI Gateway & Routing Module | [ai-chatbox.js](frontend/js/ai-chatbox.js) · [app.js](frontend/js/app.js) |
+| 5.2 Data Transformation & Response Handling Module | [ai-chatbox.js](frontend/js/ai-chatbox.js) · [server.js](backend/server.js#L383) |
 | 5.3 API Performance & Reliability Module | [server.js](backend/server.js) · [db.js](backend/db.js) |
 
 ### 6.0 QA, Testing & Data Pipeline Subsystem — Muhammad Az-Aqiel Anaqi Bin Ahmad Zamri
@@ -96,11 +96,11 @@ Data Layer           backend/db.js (SQLite) · ref_ft / ref_fd reference tables
 
 ## Project Structure
 ```
-newest_AI_chat/
-├── index.html              Main app (Analisis Sistem, dashboard, AI chatbox)
-├── laman-utama.html        Home / landing page
-├── css/                    styles.css, dashboard.css, ai-modal.css, auth.css
-├── js/                     Frontend scripts (see index above)
+FUSE-AI/
+├── frontend/
+│   ├── index.html          Main app (Analisis Sistem, dashboard, AI chatbox)
+│   ├── laman-utama.html    Home / landing page
+│   └── js/                 Frontend scripts (see index above)
 └── backend/                Node/Express server + SQLite DB
     ├── server.js           AI proxy, /api/chat, auth, systems, FUSE submit
     ├── db.js               SQLite layer
