@@ -52,6 +52,13 @@ const client = new OpenAI({
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(express.json({ limit: "1mb" }));
 
+// Serve the frontend (index.html, css/, js/) so the whole app runs from this
+// one server — open http://localhost:3001 and everything loads. The path works
+// both locally (../frontend) and inside Docker (where it is copied in).
+const path = require("path");
+const FRONTEND_DIR = path.join(__dirname, "..", "frontend");
+app.use(express.static(FRONTEND_DIR));
+
 // ============================================================
 // SYSTEM PROMPT
 // ============================================================

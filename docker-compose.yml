@@ -1,0 +1,17 @@
+# FUSE-AI — one-command run.
+#   docker compose up        → build + start
+#   open http://localhost:3001
+services:
+  fuse-ai:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "3001:3001"
+    # Loads DEEPSEEK_API_KEY, JWT_SECRET, etc. from backend/.env
+    env_file:
+      - backend/.env
+    # Persist the SQLite database on the host so data survives restarts.
+    volumes:
+      - ./backend/fuse.db:/app/backend/fuse.db
+    restart: unless-stopped

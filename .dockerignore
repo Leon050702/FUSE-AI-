@@ -1,0 +1,11 @@
+# Keep the Docker image small and never bake secrets/data into it.
+**/node_modules
+**/.env
+**/.env.local
+**/*.log
+backend/fuse.db
+backend/fuse.db-journal
+backend/fuse.db.lock
+.git
+docs
+*.py
