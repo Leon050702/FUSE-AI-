@@ -10,7 +10,7 @@
     <!-- Stylesheets (split into manageable sections) -->
     <link rel="stylesheet" href="css/styles.css?v=28">
     <link rel="stylesheet" href="css/dashboard.css?v=30">
-    <link rel="stylesheet" href="css/ai-modal.css?v=35">
+    <link rel="stylesheet" href="css/ai-modal.css?v=36">
     <link rel="stylesheet" href="css/auth.css">
 </head>
 
@@ -1058,6 +1058,11 @@
           <div class="ai-header-sub" id="ai-header-sub">Siap membantu anda</div>
         </div>
 
+        <div class="ai-status-legend" id="ai-status-legend" style="display:none;" aria-label="Maksud warna status sistem">
+          <span class="ai-status-legend-item"><span class="ai-sys-status-dot complete"></span> Completed</span>
+          <span class="ai-status-legend-item"><span class="ai-sys-status-dot incomplete"></span> Not completed</span>
+        </div>
+
         <!-- System-link dropdown (custom, themed): lets the user pick which
              system the AI should edit. -->
         <div class="ai-system-link" id="ai-system-link" title="Pilih sistem yang AI akan edit">
@@ -1107,7 +1112,7 @@
 <script src="js/app.js?v=30"></script>
 <script src="js/vaf-grid.js"></script>
 <script src="js/ai-assist.js?v=30"></script>
-<script src="js/ai-chatbox.js?v=32"></script>
+<script src="js/ai-chatbox.js?v=33"></script>
 <script src="js/auth.js?v=30"></script>
 
 </body>

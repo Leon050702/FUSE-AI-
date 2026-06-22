@@ -237,14 +237,10 @@ function aiRenderSystemsSidebar() {
     list.innerHTML = '<div class="ai-convo-empty">Tiada sistem didaftar. Sila daftar sistem di Analisis Sistem.</div>';
     return;
   }
-  // Which systems already have a saved review chat (so we can show a ● marker).
-  const chatKods = new Set((aiConvoList || []).map(c => c.system_kod).filter(Boolean));
   list.innerHTML = arr.map(s => {
     const active = (s.kod === aiLinkedSystemKod) ? ' active' : '';
-    // ● = has an ongoing chat for this system; dimmed ○ = no chat yet.
-    const dot = chatKods.has(s.kod)
-      ? '<span class="ai-sys-chatdot has" title="Ada chat tersimpan">●</span>'
-      : '<span class="ai-sys-chatdot" title="Belum ada chat">○</span>';
+    const status = aiGetSystemCompletionStatus(s);
+    const dot = `<span class="ai-sys-status-dot ${status.complete ? 'complete' : 'incomplete'}" title="${status.title}"></span>`;
     return `
       <div class="ai-convo-item ai-sys-item${active}" onclick="aiFocusReviewSystem('${escapeHtml(s.kod)}')">
         ${dot}
@@ -253,6 +249,27 @@ function aiRenderSystemsSidebar() {
       </div>
     `;
   }).join('');
+}
+
+function aiGetSystemCompletionStatus(s) {
+  if (typeof analyzeSystemModules === 'function') {
+    const result = analyzeSystemModules(s);
+    return {
+      complete: !!result.allDone,
+      title: result.allDone ? 'Status: lengkap' : 'Status: belum lengkap',
+    };
+  }
+
+  const ft = (s.fungsiTrans || []).filter(r => r && r.komponen).length;
+  const fd = (s.fungsiData || []).filter(r => r && r.komponen).length;
+  const vaf = (s.vaf || []).some(v => Number(v) > 0);
+  const peng = (s.pengurusan || []).some(r => Number(r.harga) > 0 || r.checked);
+  const perk = (s.perkakasan || []).filter(r => r && r.nama).length > 0;
+  const complete = ft > 0 && fd > 0 && vaf && peng && perk;
+  return {
+    complete,
+    title: complete ? 'Status: lengkap' : 'Status: belum lengkap',
+  };
 }
 
 // User clicked a system in the review sidebar — open THAT system's own chatbox.
@@ -519,14 +536,17 @@ function aiApplySidebarMode() {
   const title  = document.getElementById('ai-sidebar-title');
   const newBtn = document.getElementById('ai-new-chat-btn');
   const sysDd  = document.getElementById('ai-system-link');   // top-right dropdown
+  const legend = document.getElementById('ai-status-legend');
   if (aiChatMode === 'review') {
     if (title)  title.textContent = 'Sistem Didaftar';
     if (newBtn) newBtn.style.display = 'none';
     if (sysDd)  sysDd.style.display = 'none';
+    if (legend) legend.style.display = 'flex';
   } else {
     if (title)  title.textContent = 'Sejarah Perbualan';
     if (newBtn) newBtn.style.display = '';
     if (sysDd)  sysDd.style.display = '';
+    if (legend) legend.style.display = 'none';
   }
 }
 
