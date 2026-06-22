@@ -339,22 +339,23 @@ TUGAS ANDA: Memeriksa sistem-sistem yang TELAH didaftarkan oleh pengguna dan mel
 
 Anda BUKAN penjana anggaran. JANGAN cipta jadual anggaran baharu. JANGAN keluarkan JSON. JANGAN minta pengguna terangkan sistem baharu.
 
-BAHAGIAN FPA — bahagian teras yang menentukan kesiapan (semak kesemuanya):
+LIMA BAHAGIAN setiap sistem (semak kesemuanya — kesemuanya WAJIB untuk 100% siap):
 - **Fungsi Data (FD)** — entiti data. Lengkap jika ada sekurang-kurangnya 1-2 entiti dengan komponen & aggregat ditetapkan.
 - **Fungsi Transaksi (FT)** — proses sistem. Lengkap jika ada sekurang-kurangnya 3-5 proses dengan komponen & aggregat ditetapkan.
 - **Konfigurasi VAF** — 14 nilai GSC. Lengkap jika nilai telah ditetapkan (bukan semua 0).
+- **Kos Pengurusan** — item & harga kos pengurusan. Lengkap jika sekurang-kurangnya satu item mempunyai harga.
+- **Kos Perkakasan** — item & harga perkakasan/infrastruktur. Lengkap jika ada sekurang-kurangnya satu item.
 
-BAHAGIAN MANUAL (PILIHAN) — JANGAN kira sebagai blok kesiapan, dan JANGAN jana nilainya sendiri:
-- **Kos Pengurusan** — item & harga kos pengurusan.
-- **Kos Perkakasan** — item & harga perkakasan/infrastruktur.
-- Kedua-dua bahagian ini PERLU diisi secara MANUAL oleh pengguna kerana ia bergantung pada harga/sebut harga sebenar yang TIDAK boleh diketahui oleh sistem. AI TIDAK menetapkan nilainya — tugas anda hanya MENGINGATKAN pengguna untuk mengisinya jika kosong, dan menegaskan ia adalah PILIHAN (sistem tetap boleh lengkap tanpanya).
+NOTA tentang Kos Pengurusan & Kos Perkakasan: kedua-duanya diisi secara MANUAL oleh pengguna kerana ia bergantung pada harga/sebut harga sebenar — AI TIDAK menjana nilainya. Walaupun begitu, kedua-duanya WAJIB diisi untuk sistem dikira lengkap. Jika kosong, nyatakan ia belum lengkap dan ingatkan pengguna untuk mengisinya.
 
-CARA MENGIRA PERATUS KESIAPAN (anggaran kasar — hanya berdasarkan bahagian FPA + keterangan):
-- FD diisi = 30%
-- FT diisi = 30%
-- VAF diisi (bukan semua sifar) = 25%
-- Keterangan sistem ada = 15%
-- Kos Pengurusan & Kos Perkakasan TIDAK dikira dalam peratus ini (pilihan/manual).
+CARA MENGIRA PERATUS KESIAPAN (anggaran kasar — semua lima bahagian wajib):
+- FD diisi = 20%
+- FT diisi = 20%
+- VAF diisi (bukan semua sifar) = 20%
+- Kos Pengurusan diisi = 15%
+- Kos Perkakasan diisi = 15%
+- Keterangan sistem ada = 10%
+- Sistem hanya 100% LENGKAP apabila kelima-lima bahagian + keterangan ada.
 
 FORMAT JAWAPAN (guna Markdown yang kemas):
 - Mulakan dengan 1 ayat ringkasan keseluruhan.
@@ -366,11 +367,11 @@ FORMAT JAWAPAN (guna Markdown yang kemas):
     | Fungsi Data (FD) | ✅ / ⚠️ / ❌ | cth: 3 entiti didaftarkan |
     | Fungsi Transaksi (FT) | ✅ / ⚠️ / ❌ | cth: tiada proses didaftarkan |
     | Konfigurasi VAF | ✅ / ⚠️ / ❌ | cth: semua nilai 0 |
-    | Kos Pengurusan (pilihan/manual) | ✅ / ➖ | cth: 5 item / belum diisi |
-    | Kos Perkakasan (pilihan/manual) | ✅ / ➖ | cth: 3 item / belum diisi |
+    | Kos Pengurusan (manual) | ✅ / ❌ | cth: 5 item / belum diisi |
+    | Kos Perkakasan (manual) | ✅ / ❌ | cth: 3 item / belum diisi |
 - Selepas jadual, tulis: \`**Kesiapan: XX%**\` dan satu ayat ringkas tentang langkah seterusnya.
-- Gunakan simbol: ✅ = lengkap, ⚠️ = separa / perlu semakan, ❌ = kosong / belum dibuat, ➖ = pilihan & belum diisi (tidak menjejaskan kesiapan).
-- Jika Kos Pengurusan atau Kos Perkakasan kosong, tambah satu ayat ringkas mengingatkan pengguna ia BOLEH diisi secara manual (pilihan) — cth: "Kos Pengurusan & Kos Perkakasan masih kosong; anda boleh mengisinya secara manual jika mahu, tetapi ia tidak diwajibkan."
+- Gunakan simbol: ✅ = lengkap, ⚠️ = separa / perlu semakan, ❌ = kosong / belum dibuat.
+- Jika Kos Pengurusan atau Kos Perkakasan kosong, nyatakan sistem BELUM lengkap dan ingatkan pengguna untuk mengisinya secara manual (harga sebenar) — cth: "Kos Pengurusan & Kos Perkakasan masih kosong; sila isi secara manual untuk melengkapkan sistem."
 - Akhiri dengan cadangan ringkas: sistem mana yang paling perlu diberi perhatian.
 
 PERATURAN GAYA JADUAL (penting untuk paparan betul):
@@ -844,7 +845,52 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.get("/api/auth/me", authRequired, (req, res) => {
-  res.json({ user: req.user });
+  const systemCount = dbApi.countUserSystems(req.user.id);
+  res.json({ user: { ...req.user, systemCount } });
+});
+
+// Update the logged-in user's profile: change display name and/or password.
+// Body: { name?, currentPassword?, newPassword? }
+//   - To change the password, BOTH currentPassword and newPassword are required.
+app.patch("/api/auth/me", authRequired, async (req, res) => {
+  try {
+    const { name, currentPassword, newPassword } = req.body || {};
+    const wantsName = typeof name === "string" && name.trim() !== "";
+    const wantsPassword = newPassword != null && newPassword !== "";
+
+    if (!wantsName && !wantsPassword) {
+      return res.status(400).json({ error: "Tiada perubahan untuk disimpan." });
+    }
+
+    // Name change.
+    if (wantsName && name.trim() !== req.user.name) {
+      dbApi.updateUserName(req.user.id, name.trim());
+    }
+
+    // Password change — verify the current password first.
+    if (wantsPassword) {
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({ error: "Password baharu mesti sekurang-kurangnya 6 aksara." });
+      }
+      if (!currentPassword) {
+        return res.status(400).json({ error: "Sila masukkan password semasa." });
+      }
+      const full = dbApi.findUserAuthById(req.user.id);
+      const ok = full && (await bcrypt.compare(currentPassword, full.password_hash));
+      if (!ok) {
+        return res.status(401).json({ error: "Password semasa salah." });
+      }
+      const hash = await bcrypt.hash(String(newPassword), 10);
+      dbApi.updateUserPassword(req.user.id, hash);
+    }
+
+    const fresh = dbApi.findUserById(req.user.id);
+    const systemCount = dbApi.countUserSystems(req.user.id);
+    res.json({ user: { ...fresh, systemCount } });
+  } catch (err) {
+    console.error("Profile update failed:", err);
+    res.status(500).json({ error: "Kemaskini profil gagal." });
+  }
 });
 
 // ============================================================

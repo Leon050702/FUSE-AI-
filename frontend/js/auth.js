@@ -224,6 +224,97 @@
   window.fuseLogout = handleLogout;
 
   // ------------------------------------------------------------------
+  // Profile
+  // ------------------------------------------------------------------
+  function fmtSince(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? '' : 'Z'));
+    if (isNaN(d)) return '—';
+    return d.toLocaleDateString('ms-MY', { month: 'short', year: 'numeric' });
+  }
+
+  function profileMsg(kind, text) {
+    const err = document.getElementById('profile-error');
+    const ok  = document.getElementById('profile-ok');
+    if (err) { err.textContent = kind === 'error' ? text : ''; err.classList.toggle('show', kind === 'error'); }
+    if (ok)  { ok.textContent  = kind === 'ok'    ? text : ''; ok.classList.toggle('show', kind === 'ok'); }
+  }
+
+  function fillProfile(user) {
+    const initial = (user && user.name ? user.name.trim()[0] : 'U').toUpperCase();
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    set('profile-avatar', initial);
+    set('profile-head-name', user ? user.name : '—');
+    set('profile-head-email', user ? user.email : '—');
+    // Prefer server's authoritative count; fall back to in-memory systems.
+    const count = (user && typeof user.systemCount === 'number')
+      ? user.systemCount
+      : Object.keys(window.systems || {}).length;
+    set('profile-stat-systems', count);
+    set('profile-stat-since', fmtSince(user && user.created_at));
+    setVal('profile-name', user ? user.name : '');
+    setVal('profile-email-input', user ? user.email : '');
+    setVal('profile-cur-pass', '');
+    setVal('profile-new-pass', '');
+  }
+
+  async function openProfile() {
+    if (!getToken()) { showOverlay(true); switchTab('login'); return; }
+    profileMsg('clear');
+    fillProfile(getUser());                    // instant paint from cached user
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.style.display = 'flex';
+    // Refresh with authoritative data (name, email, created_at, systemCount).
+    try {
+      const data = await apiFetch('/api/auth/me');
+      if (data && data.user) {
+        setAuth(getToken(), data.user);
+        fillProfile(data.user);
+      }
+    } catch (_) { /* keep cached view */ }
+  }
+
+  function closeProfile() {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function saveProfile() {
+    profileMsg('clear');
+    const btn = document.getElementById('profile-save-btn');
+    const name    = (document.getElementById('profile-name').value || '').trim();
+    const curPass = document.getElementById('profile-cur-pass').value;
+    const newPass = document.getElementById('profile-new-pass').value;
+
+    if (!name) { profileMsg('error', 'Nama tidak boleh kosong.'); return; }
+    if (newPass && newPass.length < 6) { profileMsg('error', 'Password baharu mesti sekurang-kurangnya 6 aksara.'); return; }
+    if (newPass && !curPass) { profileMsg('error', 'Sila masukkan password semasa untuk menukar password.'); return; }
+
+    const body = { name };
+    if (newPass) { body.currentPassword = curPass; body.newPassword = newPass; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan…'; }
+    try {
+      const data = await apiFetch('/api/auth/me', { method: 'PATCH', body: JSON.stringify(body) });
+      if (data && data.user) {
+        setAuth(getToken(), data.user);
+        setUserBadge(data.user);
+        fillProfile(data.user);
+      }
+      profileMsg('ok', newPass ? 'Profil & password dikemas kini ✓' : 'Profil dikemas kini ✓');
+    } catch (err) {
+      profileMsg('error', err.message || 'Kemaskini gagal.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Simpan'; }
+    }
+  }
+
+  window.fuseOpenProfile  = openProfile;
+  window.fuseCloseProfile = closeProfile;
+  window.fuseSaveProfile  = saveProfile;
+
+  // ------------------------------------------------------------------
   // Boot
   // ------------------------------------------------------------------
   function wireForms() {

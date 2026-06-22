@@ -1,0 +1,100 @@
+/* ================================================================
+   Laporan Analisis Sistem — print-ready report styling
+   ================================================================ */
+
+/* Toolbar above the rendered report */
+.laporan-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg, #f1f5f9);
+  padding: 6px 0;
+}
+
+/* Each report page mimics an A4 sheet */
+.lap-page {
+  background: #fff;
+  width: 210mm;
+  min-height: 297mm;
+  max-width: 100%;
+  margin: 0 auto 22px;
+  padding: 18mm 16mm 14mm;
+  box-sizing: border-box;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  color: #1e293b;
+  font-size: 11px;
+  page-break-after: always;
+}
+.lap-page:last-child { page-break-after: auto; }
+
+/* Header band */
+.lap-head {
+  border-bottom: 2px solid var(--fuse-navy, #1e293b);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.lap-head-title { font-size: 13px; font-weight: 700; letter-spacing: .02em; color: var(--fuse-navy, #1e293b); }
+.lap-head-sys   { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 2px; }
+
+.lap-body { flex: 1 1 auto; }
+
+/* Footer */
+.lap-foot { margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+.lap-foot-meta { font-size: 9px; color: #475569; text-align: right; margin-bottom: 4px; }
+.lap-foot-note { font-size: 7.5px; color: #94a3b8; line-height: 1.4; text-align: justify; }
+
+/* Cover page */
+.lap-cover-title { font-size: 16px; font-weight: 700; color: var(--fuse-navy, #1e293b); margin: 8px 0 16px; }
+.lap-info { width: 100%; border-collapse: collapse; }
+.lap-info td { padding: 9px 4px; border-bottom: 1px solid #eef2f7; vertical-align: top; }
+.lap-info-k { width: 34%; font-weight: 600; color: #475569; }
+.lap-info-v { color: #1e293b; }
+.lap-cover-sign { margin-top: 30px; font-size: 11px; line-height: 1.9; color: #334155; }
+
+/* Section + headings */
+.lap-sec-title { font-size: 13px; font-weight: 700; color: var(--fuse-purple, #8b1c9e); text-align: center; margin: 2px 0 14px; }
+.lap-h3 { font-size: 14px; font-weight: 700; color: var(--fuse-navy, #1e293b); margin: 0 0 6px; }
+.lap-desc { font-size: 9.5px; color: #64748b; line-height: 1.5; text-align: justify; margin: 0 0 12px; }
+
+/* Tables */
+.lap-tbl { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.lap-tbl th, .lap-tbl td {
+  border: 1px solid #e2e8f0;
+  padding: 5px 6px;
+  text-align: center;
+  font-size: 10px;
+  vertical-align: middle;
+}
+.lap-tbl thead th {
+  background: var(--fuse-navy, #1e293b);
+  color: #fff;
+  font-weight: 600;
+  font-size: 9.5px;
+}
+.lap-tbl tbody tr:nth-child(even) { background: #f8fafc; }
+.lap-tbl .lap-l { text-align: left; }
+.lap-tbl tfoot td { background: #eef2f7; font-weight: 700; font-size: 10px; }
+.lap-total { text-align: right !important; }
+.lap-empty { color: #94a3b8; font-style: italic; padding: 16px !important; }
+.lap-tbl .lap-strong td { background: #f1f5f9; font-weight: 700; }
+.lap-sum thead th { background: #334155; }
+
+/* The "Jana Report" action button in the senarai table */
+.action-btn.act-report:hover { color: var(--fuse-navy, #1e293b); }
+
+/* Print: show only the report, full-bleed */
+@media print {
+  body.lap-printing .sidebar,
+  body.lap-printing .header,
+  body.lap-printing .laporan-toolbar,
+  body.lap-printing #laporan-list-wrap { display: none !important; }
+  body.lap-printing .main-wrapper { margin: 0 !important; padding: 0 !important; }
+  body.lap-printing .lap-page { box-shadow: none; margin: 0; width: 100%; min-height: auto; }
+}

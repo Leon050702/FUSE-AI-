@@ -98,7 +98,7 @@
                         <td>${escapeHtml(s.keterangan)}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="action-btn act-open" data-tip="Buka sistem" onclick="event.stopPropagation(); openSystem('${s.kod}')">🔗</button>
+                                <button class="action-btn act-report" data-tip="Jana Report" onclick="event.stopPropagation(); janaLaporan('${s.kod}')">📄</button>
                                 <button class="action-btn act-edit" data-tip="Sunting" onclick="event.stopPropagation(); editSystem('${s.kod}')">✏️</button>
                                 <button class="action-btn act-del" data-tip="Padam" onclick="event.stopPropagation(); deleteSystem('${s.kod}')">🗑️</button>
                             </div>
@@ -255,12 +255,12 @@
                 ft:   { done: ft  > 0, count: ft  },
                 fd:   { done: fd  > 0, count: fd  },
                 vaf:  { done: vaf },
-                // Kos Pengurusan & Kos Perkakasan are optional/manual — they are
-                // keyed in by hand (real prices) and are NOT system-derivable, so
-                // they do not block a system from being "complete".
-                peng: { done: peng, optional: true },
-                perk: { done: perk, optional: true },
-                allDone: (ft > 0 && fd > 0 && vaf),
+                // Kos Pengurusan & Kos Perkakasan are filled in manually (real
+                // prices), but a project is only fully "complete" once they are
+                // both filled — so they DO count toward the completion dot.
+                peng: { done: peng },
+                perk: { done: perk },
+                allDone: (ft > 0 && fd > 0 && vaf && peng && perk),
             };
         }
 
@@ -1756,32 +1756,31 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
         function switchSection(name) {
             const laman    = document.getElementById('section-laman-utama');
             const analisis = document.getElementById('section-analisis');
+            const laporan  = document.getElementById('section-laporan');
             const sbLaman    = document.getElementById('sb-laman-utama');
             const sbAnalisis = document.getElementById('sb-analisis');
             const sbAnalisisChildren = document.getElementById('sb-analisis-children');
             const breadcrumb = document.getElementById('top-breadcrumb');
 
+            // Hide everything first, then reveal the requested section.
+            if (laman)    laman.style.display    = 'none';
+            if (analisis) analisis.style.display = 'none';
+            if (laporan)  laporan.style.display  = 'none';
+            if (sbLaman) sbLaman.classList.remove('active-home');
+            if (sbAnalisis) { sbAnalisis.style.background = ''; sbAnalisis.style.color = ''; sbAnalisis.style.fontWeight = ''; }
+            if (sbAnalisisChildren) sbAnalisisChildren.style.display = 'none';
+
             if (name === 'laman-utama') {
-                if (laman)    laman.style.display = '';
-                if (analisis) analisis.style.display = 'none';
-                // Sidebar active states
+                if (laman) laman.style.display = '';
                 if (sbLaman) sbLaman.classList.add('active-home');
-                if (sbAnalisis) {
-                    sbAnalisis.style.background = '';
-                    sbAnalisis.style.color = '';
-                    sbAnalisis.style.fontWeight = '';
-                }
-                if (sbAnalisisChildren) sbAnalisisChildren.style.display = 'none';
                 if (breadcrumb) breadcrumb.innerHTML = '🏠 / Laman Utama Agensi';
+            } else if (name === 'laporan') {
+                if (laporan) laporan.style.display = '';
+                if (breadcrumb) breadcrumb.innerHTML = '🏠 / Laporan / Laporan Analisis Sistem';
+                if (typeof renderLaporanList === 'function') renderLaporanList();
             } else { // 'analisis'
-                if (laman)    laman.style.display = 'none';
                 if (analisis) analisis.style.display = '';
-                if (sbLaman) sbLaman.classList.remove('active-home');
-                if (sbAnalisis) {
-                    sbAnalisis.style.background = 'white';
-                    sbAnalisis.style.color = 'var(--fuse-navy)';
-                    sbAnalisis.style.fontWeight = '600';
-                }
+                if (sbAnalisis) { sbAnalisis.style.background = 'white'; sbAnalisis.style.color = 'var(--fuse-navy)'; sbAnalisis.style.fontWeight = '600'; }
                 if (sbAnalisisChildren) sbAnalisisChildren.style.display = '';
                 if (breadcrumb) breadcrumb.innerHTML = '🏠 / Analisis Sistem / Pengurusan Sistem / Senarai Sistem';
             }

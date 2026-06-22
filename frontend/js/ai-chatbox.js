@@ -263,8 +263,11 @@ function aiGetSystemCompletionStatus(s) {
   const ft = (s.fungsiTrans || []).filter(r => r && r.komponen).length;
   const fd = (s.fungsiData || []).filter(r => r && r.komponen).length;
   const vaf = (s.vaf || []).some(v => Number(v) > 0);
-  // Kos Pengurusan & Kos Perkakasan are optional/manual — not required for "complete".
-  const complete = ft > 0 && fd > 0 && vaf;
+  const peng = (s.pengurusan || []).some(r => Number(r.harga) > 0 || r.checked);
+  const perk = (s.perkakasan || []).filter(r => r && r.nama).length > 0;
+  // A project is complete only when FD + FT + VAF are done AND both cost
+  // sections (Kos Pengurusan + Kos Perkakasan) are filled.
+  const complete = ft > 0 && fd > 0 && vaf && peng && perk;
   return {
     complete,
     title: complete ? 'Status: lengkap' : 'Status: belum lengkap',

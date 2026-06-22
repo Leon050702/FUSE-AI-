@@ -1236,6 +1236,34 @@
 .btn-ai-cost:active { transform: translateY(0); }
 .btn-ai-cost:disabled { opacity: .55; cursor: progress; transform: none; box-shadow: none; }
 
+/* ── Profile modal ───────────────────────────────────────────── */
+.profile-head { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+.profile-avatar {
+  width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg, var(--fuse-navy, #1e293b), #475569);
+  color:#fff; font-size:24px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.profile-name  { font-size:18px; font-weight:700; color:var(--fuse-navy, #1e293b); }
+.profile-email { font-size:13px; color:var(--text-muted, #64748b); }
+.profile-stats { display:flex; gap:12px; margin-bottom:22px; }
+.profile-stat {
+  flex:1; text-align:center; padding:12px;
+  background:#f8fafc; border:1px solid #eef2f7; border-radius:10px;
+}
+.profile-stat-val { font-size:20px; font-weight:700; color:var(--fuse-navy, #1e293b); }
+.profile-stat-lbl { font-size:11px; color:var(--text-muted, #64748b); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+.profile-field { margin-bottom:14px; text-align:left; }
+.profile-field label { display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:5px; }
+.profile-divider {
+  margin:22px 0 14px; font-size:12px; font-weight:600; color:#64748b;
+  text-transform:uppercase; letter-spacing:.04em;
+  border-top:1px solid #eef2f7; padding-top:16px;
+}
+.profile-error, .profile-ok { display:none; font-size:13px; padding:9px 12px; border-radius:8px; margin-bottom:12px; }
+.profile-error.show { display:block; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+.profile-ok.show    { display:block; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+
 /* --- AI SUGGESTION DRAWER --- */
 .ai-shade {
   position: fixed; inset: 0;

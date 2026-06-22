@@ -98,9 +98,33 @@ function findUserByEmail(email) {
 
 function findUserById(id) {
   const row = db
-    .prepare(`SELECT id, email, name FROM users WHERE id = ?`)
+    .prepare(`SELECT id, email, name, created_at FROM users WHERE id = ?`)
     .get([id]);
   return row || null;
+}
+
+// Like findUserById but includes the password hash — used when verifying the
+// current password before a password change.
+function findUserAuthById(id) {
+  const row = db
+    .prepare(`SELECT id, email, name, password_hash, created_at FROM users WHERE id = ?`)
+    .get([id]);
+  return row || null;
+}
+
+function updateUserName(id, name) {
+  db.prepare(`UPDATE users SET name = ? WHERE id = ?`).run([name, id]);
+  return findUserById(id);
+}
+
+function updateUserPassword(id, passwordHash) {
+  db.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`).run([passwordHash, id]);
+}
+
+// Count how many systems a user owns (shown on the profile screen).
+function countUserSystems(userId) {
+  const row = db.prepare(`SELECT COUNT(*) AS n FROM systems WHERE user_id = ?`).get([userId]);
+  return row ? Number(row.n) : 0;
 }
 
 // ---------- SYSTEMS ---------------------------------------------------
@@ -249,6 +273,10 @@ module.exports = {
   createUser,
   findUserByEmail,
   findUserById,
+  findUserAuthById,
+  updateUserName,
+  updateUserPassword,
+  countUserSystems,
   listSystems,
   upsertSystem,
   deleteSystem,
