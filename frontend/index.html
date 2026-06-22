@@ -8,7 +8,7 @@
     <!-- html2pdf for report generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Stylesheets (split into manageable sections) -->
-    <link rel="stylesheet" href="css/styles.css?v=28">
+    <link rel="stylesheet" href="css/styles.css?v=29">
     <link rel="stylesheet" href="css/dashboard.css?v=30">
     <link rel="stylesheet" href="css/ai-modal.css?v=36">
     <link rel="stylesheet" href="css/auth.css">
@@ -643,6 +643,7 @@
                     <div class="card-title-row">
                         <h2>Pengiraan Kos Pengurusan</h2>
                         <div>
+                            <button class="btn-ai-cost" id="ai-cost-btn-pengurusan" onclick="aiSuggestCost('pengurusan')" title="AI cadangkan item kos pengurusan untuk sistem ini (pilihan)">✦ CADANG AI</button>
                             <button class="btn-outline" onclick="addRowPengurusan()">DAFTAR</button>
                             <button class="btn-outline">JANA DRAF</button>
                         </div>
@@ -658,6 +659,11 @@
                             <label>Carian:</label>
                             <input type="text" class="form-control">
                         </div>
+                    </div>
+                    <div class="ai-progress-strip" id="ai-prog-pengurusan">
+                      <div class="ai-progress-spinner"></div>
+                      <div class="ai-progress-text" id="ai-prog-pengurusan-text">AI sedang menganalisis…</div>
+                      <div class="ai-progress-bar-track"><div class="ai-progress-bar-fill" id="ai-prog-pengurusan-bar" style="width:0%"></div></div>
                     </div>
 
                     <table>
@@ -703,6 +709,7 @@
                     <div class="card-title-row">
                         <h2>Pengiraan Kos Perkakasan</h2>
                         <div>
+                            <button class="btn-ai-cost" id="ai-cost-btn-perkakasan" onclick="aiSuggestCost('perkakasan')" title="AI cadangkan item kos perkakasan untuk sistem ini (pilihan)">✦ CADANG AI</button>
                             <button class="btn-outline" onclick="addRowPerkakasan()">DAFTAR</button>
                             <button class="btn-outline">JANA DRAF</button>
                         </div>
@@ -718,6 +725,11 @@
                             <label>Carian:</label>
                             <input type="text" class="form-control">
                         </div>
+                    </div>
+                    <div class="ai-progress-strip" id="ai-prog-perkakasan">
+                      <div class="ai-progress-spinner"></div>
+                      <div class="ai-progress-text" id="ai-prog-perkakasan-text">AI sedang menganalisis…</div>
+                      <div class="ai-progress-bar-track"><div class="ai-progress-bar-fill" id="ai-prog-perkakasan-bar" style="width:0%"></div></div>
                     </div>
 
                     <table>
@@ -1109,10 +1121,10 @@
                        the Node/Express backend at http://localhost:3001
                        (POST /api/chat → injects payload into systems[]).
 ============================================================ -->
-<script src="js/app.js?v=30"></script>
+<script src="js/app.js?v=31"></script>
 <script src="js/vaf-grid.js"></script>
-<script src="js/ai-assist.js?v=30"></script>
-<script src="js/ai-chatbox.js?v=33"></script>
+<script src="js/ai-assist.js?v=31"></script>
+<script src="js/ai-chatbox.js?v=34"></script>
 <script src="js/auth.js?v=30"></script>
 
 </body>

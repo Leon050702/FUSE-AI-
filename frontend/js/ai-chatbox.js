@@ -263,9 +263,8 @@ function aiGetSystemCompletionStatus(s) {
   const ft = (s.fungsiTrans || []).filter(r => r && r.komponen).length;
   const fd = (s.fungsiData || []).filter(r => r && r.komponen).length;
   const vaf = (s.vaf || []).some(v => Number(v) > 0);
-  const peng = (s.pengurusan || []).some(r => Number(r.harga) > 0 || r.checked);
-  const perk = (s.perkakasan || []).filter(r => r && r.nama).length > 0;
-  const complete = ft > 0 && fd > 0 && vaf && peng && perk;
+  // Kos Pengurusan & Kos Perkakasan are optional/manual — not required for "complete".
+  const complete = ft > 0 && fd > 0 && vaf;
   return {
     complete,
     title: complete ? 'Status: lengkap' : 'Status: belum lengkap',
@@ -1516,6 +1515,7 @@ function aiBuildAllSystemsContext(onlyKod = null) {
     const vafArr  = (s.vaf && s.vaf.length === 14) ? s.vaf : new Array(14).fill(0);
     const vafSet  = vafArr.some(v => Number(v) > 0);
     const pengRows = (s.pengurusan || []).filter(r => r && (Number(r.harga) > 0 || r.checked));
+    const perkRows = (s.perkakasan || []).filter(r => r && r.nama);
     return `--- SISTEM ---
 KOD: ${s.kod}
 NAMA: ${s.nama || '(tiada nama)'}
@@ -1523,7 +1523,8 @@ KETERANGAN: ${s.keterangan ? s.keterangan : '(KOSONG)'}
 Fungsi Data (FD): ${fdRows.length} entri ${fdRows.length ? 'didaftarkan' : '(KOSONG)'}
 Fungsi Transaksi (FT): ${ftRows.length} entri ${ftRows.length ? 'didaftarkan' : '(KOSONG)'}
 Konfigurasi VAF: ${vafSet ? 'sudah ditetapkan' : 'semua nilai 0 (KOSONG)'}
-Kos Pengurusan: ${pengRows.length} item ${pengRows.length ? 'didaftarkan' : '(KOSONG)'}`;
+Kos Pengurusan (pilihan/manual): ${pengRows.length} item ${pengRows.length ? 'didaftarkan' : '(belum diisi)'}
+Kos Perkakasan (pilihan/manual): ${perkRows.length} item ${perkRows.length ? 'didaftarkan' : '(belum diisi)'}`;
   }).join('\n\n');
 
   const scope = (onlyKod && window.systems && window.systems[onlyKod])
@@ -1691,6 +1692,7 @@ async function sendAIEstimate(injectedMsg) {
       const ftRows  = (s.fungsiTrans || []).filter(r => r && r.komponen);
       const vafArr  = (s.vaf && s.vaf.length === 14) ? s.vaf : new Array(14).fill(0);
       const pengRows = (s.pengurusan || []).filter(r => r && (Number(r.harga) > 0 || r.checked));
+      const perkRows = (s.perkakasan || []).filter(r => r && r.nama);
 
       // Pretty-print the actual contents so the AI can list / discuss them
       // without asking the user to retype anything.
@@ -1712,7 +1714,13 @@ async function sendAIEstimate(injectedMsg) {
         ? pengRows.map((r, i) =>
             `  ${i + 1}. Perkara=${r.perkara} | Harga=${r.harga} | Kuantiti=${r.kuantiti}`
           ).join('\n')
-        : '  (tiada item Kos Pengurusan didaftarkan)';
+        : '  (belum diisi — bahagian pilihan/manual)';
+
+      const perkList = perkRows.length
+        ? perkRows.map((r, i) =>
+            `  ${i + 1}. Perkakasan=${r.nama} | Harga=${r.harga} | Kuantiti=${r.kuantiti}`
+          ).join('\n')
+        : '  (belum diisi — bahagian pilihan/manual)';
 
       const ctx =
 `[KONTEKS SISTEM — pengguna sedang mengedit sistem berikut. Gunakan data sebenar ini untuk SEMUA jawapan (termasuk apabila pengguna minta "list in table", "senaraikan", dll). Anda TIDAK perlu tanya pengguna semula — semua maklumat sudah ada di bawah:
@@ -1730,12 +1738,16 @@ ${ftList}
 == KONFIGURASI VAF (14 GSC) ==
 ${vafList}
 
-== KOS PENGURUSAN (${pengRows.length} entri) ==
+== KOS PENGURUSAN (pilihan/manual — ${pengRows.length} entri) ==
 ${pengList}
+
+== KOS PERKAKASAN (pilihan/manual — ${perkRows.length} entri) ==
+${perkList}
 
 ARAHAN PENTING:
 1. Apabila pengguna minta "list in table" atau "senaraikan dalam jadual" — terus tunjukkan jadual berdasarkan data di atas. JANGAN tanya pengguna untuk berikan maklumat semula.
-2. Apabila anda menjana payload JSON baharu, mesti gunakan "nama":"${s.nama}" dan "keterangan":"${s.keterangan || ''}". Pengguna mahu MENGEMASKINI sistem ini, bukan mencipta baharu.]`;
+2. Apabila anda menjana payload JSON baharu, mesti gunakan "nama":"${s.nama}" dan "keterangan":"${s.keterangan || ''}". Pengguna mahu MENGEMASKINI sistem ini, bukan mencipta baharu.
+3. Kos Pengurusan & Kos Perkakasan adalah bahagian PILIHAN yang diisi MANUAL oleh pengguna (bergantung pada harga sebenar). JANGAN reka nilai harganya — jika kosong, ingatkan pengguna ia boleh diisi secara manual, tetapi ia tidak diwajibkan.]`;
 
       messagesToSend.unshift({ role: 'user', content: ctx });
       messagesToSend.splice(1, 0, { role: 'assistant', content: 'Faham — saya ada akses penuh kepada data sistem ' + s.kod + ' dan akan jawab berdasarkan data tersebut.' });

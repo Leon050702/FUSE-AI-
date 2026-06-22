@@ -1219,6 +1219,23 @@
   transition: width 0.4s ease;
 }
 
+/* "Cadang AI" button on the cost pages (Kos Pengurusan / Kos Perkakasan) */
+.btn-ai-cost {
+  background: linear-gradient(135deg, #bf5af2, #c51196);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(197,17,150,.25);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+}
+.btn-ai-cost:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(197,17,150,.32); }
+.btn-ai-cost:active { transform: translateY(0); }
+.btn-ai-cost:disabled { opacity: .55; cursor: progress; transform: none; box-shadow: none; }
+
 /* --- AI SUGGESTION DRAWER --- */
 .ai-shade {
   position: fixed; inset: 0;

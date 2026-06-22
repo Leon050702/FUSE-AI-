@@ -168,6 +168,177 @@ async function doAiAutoFill(ctx) {
   }
 }
 
+// ── AI COST SUGGESTION (Kos Pengurusan / Kos Perkakasan) ─────────
+// Dedicated, OPTIONAL, user-triggered button on each cost page. Asks the
+// backend to propose manual cost items for the current system and drops them
+// straight into the table as editable rows. These are suggestions only — the
+// user can edit, delete or ignore them, and they do not affect the FPA result.
+const AI_COST_BACKEND = (typeof AI_BACKEND_URL === 'string') ? AI_BACKEND_URL : 'http://localhost:3001';
+
+async function aiSuggestCost(section) {
+  section = (section === 'perkakasan') ? 'perkakasan' : 'pengurusan';
+  if (!currentSystemCode || !systems[currentSystemCode]) {
+    showAiToast('⚠ Sila pilih sistem dahulu', false);
+    return;
+  }
+  const s = systems[currentSystemCode];
+
+  const btn  = document.getElementById('ai-cost-btn-' + section);
+  const prog = document.getElementById('ai-prog-' + section);
+  const bar  = document.getElementById('ai-prog-' + section + '-bar');
+  const txt  = document.getElementById('ai-prog-' + section + '-text');
+  if (btn) btn.disabled = true;
+  if (prog) prog.classList.add('show');
+  if (txt) txt.innerHTML = 'AI menganalisis sistem untuk cadangan kos…';
+  if (bar) bar.style.width = '30%';
+
+  // Build a compact description of the system for the model.
+  const fd = (s.fungsiData  || []).filter(r => r && (r.entiti || r.komponen)).map(r => r.entiti || r.komponen);
+  const ft = (s.fungsiTrans || []).filter(r => r && (r.makro || r.komponen)).map(r => r.makro || r.general || r.komponen);
+
+  // Existing item names currently shown in the table — so the AI can price the
+  // standard pre-filled Kos Pengurusan items instead of duplicating them.
+  const existingItems = aiReadCostRowNames(section);
+
+  try {
+    const r = await fetch(AI_COST_BACKEND + '/api/suggest-cost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ section, nama: s.nama || '', keterangan: s.keterangan || '', fd, ft, existingItems }),
+    });
+    if (bar) bar.style.width = '70%';
+    if (!r.ok) {
+      let msg = 'Ralat pelayan AI.';
+      try { const j = await r.json(); msg = j.error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const data = await r.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) throw new Error('AI tidak menghasilkan cadangan.');
+
+    if (txt) txt.innerHTML = 'Memasukkan <span>' + items.length + ' item</span> cadangan…';
+    if (bar) bar.style.width = '90%';
+
+    const res = (section === 'pengurusan')
+      ? applyCostSuggestions('pengurusan', items)
+      : applyCostSuggestions('perkakasan', items);
+
+    if (bar) bar.style.width = '100%';
+    if (txt) txt.innerHTML = 'Selesai! <span>' + (res.filled + res.added) + ' item</span> dikemas kini oleh AI.';
+    await sleep(800);
+    const parts = [];
+    if (res.filled) parts.push(res.filled + ' harga diisi');
+    if (res.added)  parts.push(res.added + ' item baharu');
+    showAiToast('✦ AI: ' + (parts.join(' · ') || items.length + ' item') + ' — anda boleh ubah atau padam.');
+  } catch (e) {
+    showAiToast('⚠ ' + (e.message || 'Gagal menjana cadangan kos.'), false);
+  } finally {
+    if (prog) prog.classList.remove('show');
+    if (bar) bar.style.width = '0%';
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Normalise an item name for fuzzy matching (lowercase, collapse whitespace,
+// strip punctuation) so "UAT & Dokumentasi" ≈ "uat dokumentasi".
+function aiNormName(v) {
+  return String(v || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Read the item names currently in a cost table (so the AI can price them).
+function aiReadCostRowNames(section) {
+  const sel = section === 'perkakasan' ? 'nama-perkakasan-' : 'perkara-pengurusan-';
+  const prefix = section === 'perkakasan' ? 'row-perkakasan-' : 'row-pengurusan-';
+  const tbodyId = section === 'perkakasan' ? 'perkakasan-table-body' : 'pengurusan-table-body';
+  const names = [];
+  document.querySelectorAll(`#${tbodyId} tr[id^="${prefix}"]`).forEach(tr => {
+    const id = tr.id.replace(prefix, '');
+    const v = document.getElementById(sel + id)?.value;
+    if (v && v.trim()) names.push(v.trim());
+  });
+  return names;
+}
+
+// Apply AI suggestions to a cost table: fill price/qty into rows whose name
+// matches an existing (empty-priced) row, and APPEND the rest as new rows.
+// Returns { filled, added }. Works for both 'pengurusan' and 'perkakasan'.
+function applyCostSuggestions(section, items) {
+  const isPeng = section === 'pengurusan';
+  const tbodyId = isPeng ? 'pengurusan-table-body' : 'perkakasan-table-body';
+  const rowPrefix = isPeng ? 'row-pengurusan-' : 'row-perkakasan-';
+  const nameSel = isPeng ? 'perkara-pengurusan-' : 'nama-perkakasan-';
+  const hargaSel = isPeng ? 'harga-pengurusan-' : 'harga-perkakasan-';
+  const qtySel = isPeng ? 'kuantiti-pengurusan-' : 'kuantiti-perkakasan-';
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return { filled: 0, added: 0 };
+
+  if (!isPeng) { const er = document.getElementById('empty-perkakasan'); if (er) er.remove(); }
+
+  // Index existing rows by normalised name.
+  const existing = new Map();
+  document.querySelectorAll(`#${tbodyId} tr[id^="${rowPrefix}"]`).forEach(tr => {
+    const id = tr.id.replace(rowPrefix, '');
+    const nm = aiNormName(document.getElementById(nameSel + id)?.value);
+    if (nm && !existing.has(nm)) existing.set(nm, id);
+  });
+
+  let filled = 0, added = 0;
+  const flash = (row) => {
+    if (!row) return;
+    row.classList.add('ai-row-filled');
+    setTimeout(r => r.classList.remove('ai-row-filled'), 1400, row);
+  };
+
+  items.forEach(it => {
+    const name = it.perkara || it.nama || '';
+    const harga = Number(it.harga) || 0;
+    const qty = parseInt(it.kuantiti, 10) || 1;
+    const key = aiNormName(name);
+    const hitId = key && existing.get(key);
+
+    if (hitId) {
+      // Fill price/qty into the matching existing row.
+      const hEl = document.getElementById(hargaSel + hitId);
+      const qEl = document.getElementById(qtySel + hitId);
+      if (hEl) { hEl.value = harga; hEl.classList.add('ai-set'); }
+      if (qEl && (!qEl.value || Number(qEl.value) <= 0)) qEl.value = qty;
+      if (!isPeng && typeof validatePerkakasan === 'function') validatePerkakasan(hitId);
+      flash(document.getElementById(rowPrefix + hitId));
+      filled++;
+    } else {
+      // Append as a new row.
+      let newId;
+      if (isPeng) {
+        pengurusanRowCounter++; newId = pengurusanRowCounter;
+        tbody.insertAdjacentHTML('beforeend', buildPengurusanRowHtml(newId, { perkara: name, harga, kuantiti: qty, checked: false, saved: false }));
+      } else {
+        perkakasanRowCounter++; newId = perkakasanRowCounter;
+        tbody.insertAdjacentHTML('beforeend', buildPerkakasanRowHtml(newId, { nama: name, harga, kuantiti: qty, saved: false }));
+      }
+      const hEl = document.getElementById(hargaSel + newId);
+      if (hEl) hEl.classList.add('ai-set');
+      flash(document.getElementById(rowPrefix + newId));
+      added++;
+    }
+  });
+
+  // Refresh count, recalc totals, persist.
+  const n = document.querySelectorAll(`#${tbodyId} tr[id^="${rowPrefix}"]`).length;
+  const countEl = document.getElementById(isPeng ? 'pengurusan-count' : 'perkakasan-count');
+  if (countEl) countEl.innerText = n > 0 ? `1-${n} of ${n}` : '0-0 of 0';
+  if (isPeng) { if (typeof calcPengurusan === 'function') calcPengurusan(); systems[currentSystemCode].pengurusan = serializePengurusanFromDOM(); }
+  else        { if (typeof calcPerkakasan === 'function') calcPerkakasan(); systems[currentSystemCode].perkakasan = serializePerkakasanFromDOM(); }
+  aiPersistSystems();
+  return { filled, added };
+}
+
+// Persist via whichever save helper the app exposes (mirrors app.js patterns).
+function aiPersistSystems() {
+  if (typeof window.fuseSaveSystemsNow === 'function') window.fuseSaveSystemsNow();
+  else if (typeof window.fuseScheduleSave === 'function') window.fuseScheduleSave(0);
+}
+window.aiSuggestCost = aiSuggestCost;
+
 // ── SUGGESTION DRAWER ────────────────────────────────────────────
 function openAiDrawer(ctx) {
   document.querySelectorAll('.ai-menu').forEach(m => m.classList.remove('open'));

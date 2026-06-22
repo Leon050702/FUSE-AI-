@@ -339,18 +339,22 @@ TUGAS ANDA: Memeriksa sistem-sistem yang TELAH didaftarkan oleh pengguna dan mel
 
 Anda BUKAN penjana anggaran. JANGAN cipta jadual anggaran baharu. JANGAN keluarkan JSON. JANGAN minta pengguna terangkan sistem baharu.
 
-EMPAT BAHAGIAN setiap sistem (semak kesemuanya):
+BAHAGIAN FPA — bahagian teras yang menentukan kesiapan (semak kesemuanya):
 - **Fungsi Data (FD)** — entiti data. Lengkap jika ada sekurang-kurangnya 1-2 entiti dengan komponen & aggregat ditetapkan.
 - **Fungsi Transaksi (FT)** — proses sistem. Lengkap jika ada sekurang-kurangnya 3-5 proses dengan komponen & aggregat ditetapkan.
 - **Konfigurasi VAF** — 14 nilai GSC. Lengkap jika nilai telah ditetapkan (bukan semua 0).
-- **Kos Pengurusan** — item kos. Pilihan, tetapi nyatakan jika kosong.
 
-CARA MENGIRA PERATUS KESIAPAN (anggaran kasar):
-- FD diisi = 25%
-- FT diisi = 25%
+BAHAGIAN MANUAL (PILIHAN) — JANGAN kira sebagai blok kesiapan, dan JANGAN jana nilainya sendiri:
+- **Kos Pengurusan** — item & harga kos pengurusan.
+- **Kos Perkakasan** — item & harga perkakasan/infrastruktur.
+- Kedua-dua bahagian ini PERLU diisi secara MANUAL oleh pengguna kerana ia bergantung pada harga/sebut harga sebenar yang TIDAK boleh diketahui oleh sistem. AI TIDAK menetapkan nilainya — tugas anda hanya MENGINGATKAN pengguna untuk mengisinya jika kosong, dan menegaskan ia adalah PILIHAN (sistem tetap boleh lengkap tanpanya).
+
+CARA MENGIRA PERATUS KESIAPAN (anggaran kasar — hanya berdasarkan bahagian FPA + keterangan):
+- FD diisi = 30%
+- FT diisi = 30%
 - VAF diisi (bukan semua sifar) = 25%
 - Keterangan sistem ada = 15%
-- Kos Pengurusan ada = 10%
+- Kos Pengurusan & Kos Perkakasan TIDAK dikira dalam peratus ini (pilihan/manual).
 
 FORMAT JAWAPAN (guna Markdown yang kemas):
 - Mulakan dengan 1 ayat ringkasan keseluruhan.
@@ -362,9 +366,11 @@ FORMAT JAWAPAN (guna Markdown yang kemas):
     | Fungsi Data (FD) | ✅ / ⚠️ / ❌ | cth: 3 entiti didaftarkan |
     | Fungsi Transaksi (FT) | ✅ / ⚠️ / ❌ | cth: tiada proses didaftarkan |
     | Konfigurasi VAF | ✅ / ⚠️ / ❌ | cth: semua nilai 0 |
-    | Kos Pengurusan | ✅ / ⚠️ | cth: 5 item |
+    | Kos Pengurusan (pilihan/manual) | ✅ / ➖ | cth: 5 item / belum diisi |
+    | Kos Perkakasan (pilihan/manual) | ✅ / ➖ | cth: 3 item / belum diisi |
 - Selepas jadual, tulis: \`**Kesiapan: XX%**\` dan satu ayat ringkas tentang langkah seterusnya.
-- Gunakan simbol: ✅ = lengkap, ⚠️ = separa / perlu semakan, ❌ = kosong / belum dibuat.
+- Gunakan simbol: ✅ = lengkap, ⚠️ = separa / perlu semakan, ❌ = kosong / belum dibuat, ➖ = pilihan & belum diisi (tidak menjejaskan kesiapan).
+- Jika Kos Pengurusan atau Kos Perkakasan kosong, tambah satu ayat ringkas mengingatkan pengguna ia BOLEH diisi secara manual (pilihan) — cth: "Kos Pengurusan & Kos Perkakasan masih kosong; anda boleh mengisinya secara manual jika mahu, tetapi ia tidak diwajibkan."
 - Akhiri dengan cadangan ringkas: sistem mana yang paling perlu diberi perhatian.
 
 PERATURAN GAYA JADUAL (penting untuk paparan betul):
@@ -373,6 +379,42 @@ PERATURAN GAYA JADUAL (penting untuk paparan betul):
 
 JIKA pengguna bertanya soalan umum tentang kelengkapan atau cara melengkapkan sistem — jawab secara ringkas dan membantu.
 JIKA tiada sistem langsung didaftarkan — beritahu pengguna dengan sopan bahawa belum ada sistem untuk disemak, dan jemput mereka mendaftar satu di bahagian Analisis Sistem.`;
+}
+
+// ============================================================
+// SYSTEM PROMPT — COST SUGGESTION MODE (Kos Pengurusan / Kos Perkakasan)
+// ============================================================
+// Triggered by the dedicated "Cadang AI" button on each cost page. Given the
+// system the user is editing, the AI proposes a short list of manual cost items
+// (with estimated unit prices & quantities) and returns them as STRICT JSON so
+// the frontend can drop them straight into the table. These are SUGGESTIONS —
+// the user is free to edit, delete, or ignore them; they are NOT part of the
+// FPA calculation.
+function buildCostPrompt(section) {
+  const isPeng = section === "pengurusan";
+  const label  = isPeng ? "Kos Pengurusan" : "Kos Perkakasan";
+  const itemKey = isPeng ? "perkara" : "nama";
+  const examples = isPeng
+    ? "dokumentasi sistem, ujian penerimaan pengguna (UAT), latihan pengguna, khidmat keselamatan/penetration test, migrasi data, sokongan & penyelenggaraan tahun pertama"
+    : "pelayan / cloud hosting, storan & backup, sijil SSL & domain, lesen perisian, peranti rangkaian (switch/router), komputer/peranti sokongan";
+  return `Anda penjana cadangan ${label} untuk projek sistem ICT Kerajaan Negeri Johor.
+
+TUGAS: Berdasarkan penerangan sistem yang diberi, cadangkan item ${label} yang munasabah dan realistik untuk sistem jenis & saiz tersebut. Beri anggaran harga seunit (RM) dan kuantiti yang berpatutan mengikut harga pasaran Malaysia.
+
+JIKA senarai "item sedia ada" diberi dalam mesej pengguna:
+- Untuk SETIAP item sedia ada, kembalikan item dengan "${itemKey}" yang SAMA PERSIS seperti diberi, beserta anggaran "harga" seunit & "kuantiti". (Sistem akan memadankan nama untuk mengisi harga.)
+- Anda BOLEH tambah beberapa item baharu yang relevan jika berpatutan.
+JIKA tiada senarai item sedia ada — cadangkan 3-6 item baharu.
+
+Contoh jenis item ${label}: ${examples}.
+
+PERATURAN OUTPUT:
+- Balas dengan SATU objek JSON SAHAJA. TIADA teks, tiada markdown, tiada penjelasan, tiada blok kod.
+- Skema TEPAT:
+{"items":[{"${itemKey}":"<nama item ringkas>","harga":<nombor RM seunit, tanpa simbol>,"kuantiti":<nombor bulat>,"catatan":"<sebab ringkas, satu frasa>"}]}
+- "harga" mesti nombor (cth 5000 atau 1500.50), BUKAN string. "kuantiti" mesti integer >= 1.
+- Sesuaikan item & harga dengan jenis sistem (sistem kecil = item & harga lebih rendah; sistem besar/kompleks = lebih tinggi).
+- JANGAN sertakan SST/cukai — itu dikira automatik oleh sistem.`;
 }
 
 // ============================================================
@@ -550,6 +592,80 @@ app.post("/api/chat", async (req, res) => {
     console.error("AI call failed:", err);
     res.status(err.status || 500).json({
       error: err.message || "Ralat tidak dijangka dari perkhidmatan AI.",
+    });
+  }
+});
+
+// Cost-suggestion endpoint — powers the "Cadang AI" button on the
+// Kos Pengurusan / Kos Perkakasan pages.
+// Body: { section: 'pengurusan'|'perkakasan', nama, keterangan, fd:[...], ft:[...] }
+// Returns: { items: [{ perkara|nama, harga, kuantiti, catatan }] }
+app.post("/api/suggest-cost", async (req, res) => {
+  try {
+    const section = req.body?.section === "perkakasan" ? "perkakasan" : "pengurusan";
+    const nama = String(req.body?.nama || "").slice(0, 300) || "(tiada nama)";
+    const keterangan = String(req.body?.keterangan || "").slice(0, 2000);
+    const fd = Array.isArray(req.body?.fd) ? req.body.fd : [];
+    const ft = Array.isArray(req.body?.ft) ? req.body.ft : [];
+    const existingItems = (Array.isArray(req.body?.existingItems) ? req.body.existingItems : [])
+      .map(x => String(x).trim()).filter(Boolean).slice(0, 40);
+
+    // Describe the system to the model so its suggestions fit the scale/type.
+    const sysDesc =
+`Maklumat sistem:
+NAMA: ${nama}
+KETERANGAN: ${keterangan || "(tiada keterangan)"}
+Bilangan Fungsi Data: ${fd.length}
+Bilangan Fungsi Transaksi: ${ft.length}
+${fd.length ? "Contoh entiti data: " + fd.slice(0, 8).map(x => String(x).slice(0, 40)).join(", ") : ""}
+${ft.length ? "Contoh proses: " + ft.slice(0, 8).map(x => String(x).slice(0, 40)).join(", ") : ""}
+${existingItems.length ? "\nItem sedia ada (beri harga & kuantiti untuk SETIAP satu, kekalkan nama yang sama):\n" + existingItems.map((x, i) => `${i + 1}. ${x}`).join("\n") : ""}
+
+Cadangkan item ${section === "pengurusan" ? "Kos Pengurusan" : "Kos Perkakasan"} untuk sistem ini.`;
+
+    const itemKey = section === "perkakasan" ? "nama" : "perkara";
+    const maxItems = Math.max(8, existingItems.length + 4);
+
+    // Parse + sanitise one AI reply into clean rows.
+    const parseItems = (replyText) => {
+      const parsed = extractJson(replyText) || {};
+      const rawItems = Array.isArray(parsed.items) ? parsed.items : [];
+      return rawItems
+        .map(it => {
+          const name = String(it?.[itemKey] ?? it?.nama ?? it?.perkara ?? "").trim().slice(0, 200);
+          let harga = Number(it?.harga);
+          if (!Number.isFinite(harga) || harga < 0) harga = 0;
+          let kuantiti = parseInt(it?.kuantiti, 10);
+          if (!Number.isFinite(kuantiti) || kuantiti < 1) kuantiti = 1;
+          const catatan = String(it?.catatan ?? "").trim().slice(0, 300);
+          return { [itemKey]: name, harga, kuantiti, catatan };
+        })
+        .filter(it => it[itemKey])
+        .slice(0, maxItems);
+    };
+
+    // The model occasionally returns non-JSON; retry once before giving up.
+    let items = [];
+    for (let attempt = 0; attempt < 2 && !items.length; attempt++) {
+      const response = await client.chat.completions.create({
+        model: MODEL,
+        max_tokens: 2400,
+        messages: [
+          { role: "system", content: buildCostPrompt(section) },
+          { role: "user", content: sysDesc },
+        ],
+      });
+      items = parseItems((response.choices?.[0]?.message?.content || "").trim());
+    }
+
+    if (!items.length) {
+      return res.status(502).json({ error: "AI tidak menghasilkan cadangan yang sah. Sila cuba lagi." });
+    }
+    res.json({ section, items });
+  } catch (err) {
+    console.error("Cost suggestion failed:", err);
+    res.status(err.status || 500).json({
+      error: err.message || "Ralat tidak dijangka semasa menjana cadangan kos.",
     });
   }
 });

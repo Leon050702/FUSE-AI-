@@ -255,9 +255,12 @@
                 ft:   { done: ft  > 0, count: ft  },
                 fd:   { done: fd  > 0, count: fd  },
                 vaf:  { done: vaf },
-                peng: { done: peng },
-                perk: { done: perk },
-                allDone: (ft > 0 && fd > 0 && vaf && peng && perk),
+                // Kos Pengurusan & Kos Perkakasan are optional/manual — they are
+                // keyed in by hand (real prices) and are NOT system-derivable, so
+                // they do not block a system from being "complete".
+                peng: { done: peng, optional: true },
+                perk: { done: perk, optional: true },
+                allDone: (ft > 0 && fd > 0 && vaf),
             };
         }
 
