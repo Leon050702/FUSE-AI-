@@ -1253,12 +1253,27 @@ function aiApplyPayloadToSystems(payload) {
   // If the chat is linked to an existing system, REUSE that kod and keep
   // its existing metadata (nama, keterangan). Otherwise, fall back to the
   // old behavior: create a fresh system from the payload.
+  // Normalise a value into a comparison key (for detecting which rows are NEW).
+  const norm = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toLowerCase();
+
   let kod, nama, keterangan, sys;
+  // Snapshot of what already existed, so an ADD-ON only highlights the new rows.
+  let prevFdKeys = new Set(), prevFtKeys = new Set();
+  let isUpdate = false;
   if (aiLinkedSystemKod && systems[aiLinkedSystemKod]) {
     kod        = aiLinkedSystemKod;
     nama       = systems[kod].nama;
     keterangan = systems[kod].keterangan || '';
     sys        = systems[kod];                  // mutate in place
+    // Capture existing entries BEFORE wiping (used to mark only the additions).
+    // Match by NAME only — the komponen string can differ in format between what
+    // the UI stored ("ILFH - high") and what the AI emits ("ILF - High (ILFH)").
+    prevFdKeys = new Set((sys.fungsiData  || []).map(r => norm(r.entiti)));
+    prevFtKeys = new Set((sys.fungsiTrans || []).map(r => norm(r.makro) + '|' + norm(r.general)));
+    // Treat as an "update" (worth highlighting) only if the system already had content.
+    isUpdate = prevFdKeys.size > 0 || prevFtKeys.size > 0 ||
+               (sys.perkakasan || []).length > 0 ||
+               (sys.pengurusan || []).some(r => Number(r.harga) > 0 || r.checked);
     // Wipe the modules the AI is about to fill, so we don't accumulate duplicates.
     sys.fungsiTrans = [];
     sys.fungsiData  = [];
@@ -1291,28 +1306,37 @@ function aiApplyPayloadToSystems(payload) {
   const clean = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
 
   if (Array.isArray(payload.FT_Sistem)) {
-    sys.fungsiTrans = payload.FT_Sistem.map(ft => ({
-      makro: clean(ft.macroproses),
-      general: clean(ft.general_proses),
-      aggregat: transAggMap[ft.aggregat] || 'Pilih',
-      // komponen string from ref table (e.g. "EI - Average (EIA)") — substring 'EIA'
-      // is what recalculateTotals() / updateFinalReport() look for, so this works as-is.
-      komponen: clean(ft.komponen),
-      gandaan: String(ft.ft_multiplier || 1),
-      catatan: clean(ft.keterangan),
-      saved: true
-    }));
+    sys.fungsiTrans = payload.FT_Sistem.map(ft => {
+      const makro = clean(ft.macroproses), general = clean(ft.general_proses), komponen = clean(ft.komponen);
+      const key = norm(makro) + '|' + norm(general);
+      return {
+        makro, general,
+        aggregat: transAggMap[ft.aggregat] || 'Pilih',
+        // komponen string from ref table (e.g. "EI - Average (EIA)") — substring 'EIA'
+        // is what recalculateTotals() / updateFinalReport() look for, so this works as-is.
+        komponen,
+        gandaan: String(ft.ft_multiplier || 1),
+        catatan: clean(ft.keterangan),
+        saved: true,
+        _aiAdded: isUpdate && !prevFtKeys.has(key)
+      };
+    });
   }
 
   if (Array.isArray(payload.FD_Sistem)) {
-    sys.fungsiData = payload.FD_Sistem.map(fd => ({
-      entiti: clean(fd.entiti),
-      aggregat: dataAggMap[fd.aggregat] || 'Pilih',
-      komponen: clean(fd.komponen),
-      gandaan: String(fd.fd_multiplier || 1),
-      catatan: clean(fd.keterangan),
-      saved: true
-    }));
+    sys.fungsiData = payload.FD_Sistem.map(fd => {
+      const entiti = clean(fd.entiti), komponen = clean(fd.komponen);
+      const key = norm(entiti);
+      return {
+        entiti,
+        aggregat: dataAggMap[fd.aggregat] || 'Pilih',
+        komponen,
+        gandaan: String(fd.fd_multiplier || 1),
+        catatan: clean(fd.keterangan),
+        saved: true,
+        _aiAdded: isUpdate && !prevFdKeys.has(key)
+      };
+    });
   }
 
   // VAF — array of exactly 14 integers in [0,5], one per GSC.
@@ -1325,6 +1349,30 @@ function aiApplyPayloadToSystems(payload) {
       return 0;
     });
     vafCount = sys.vaf.filter(v => v > 0).length;
+  }
+
+  // Kos Pengurusan & Kos Perkakasan — the AI suggests these; APPEND them so they
+  // land in the system. Existing items (incl. the 15 pre-filled pengurusan) are
+  // kept; the user can delete any unwanted rows afterward.
+  if (Array.isArray(payload.Kos_Pengurusan)) {
+    const items = payload.Kos_Pengurusan.map(r => ({
+      perkara: clean(r.perkara || r.nama),
+      harga: Number(r.harga) || 0,
+      kuantiti: parseInt(r.kuantiti, 10) || 1,
+      checked: false, saved: true,
+      _aiAdded: isUpdate
+    })).filter(r => r.perkara);
+    sys.pengurusan = [...(sys.pengurusan || []), ...items];
+  }
+  if (Array.isArray(payload.Kos_Perkakasan)) {
+    const items = payload.Kos_Perkakasan.map(r => ({
+      nama: clean(r.nama || r.perkara),
+      harga: Number(r.harga) || 0,
+      kuantiti: parseInt(r.kuantiti, 10) || 1,
+      saved: true,
+      _aiAdded: isUpdate
+    })).filter(r => r.nama);
+    sys.perkakasan = [...(sys.perkakasan || []), ...items];
   }
 
   systems[kod] = sys;
@@ -1828,21 +1876,11 @@ ARAHAN PENTING:
       addAIBubble('⚠ Nota: paparan jadual mungkin tidak lengkap kerana jawapan panjang, tetapi data penuh telah diterima.');
     }
 
-    // Essay detection: a proper estimation reply contains "## " section headings
-    // (Fungsi Data / Transaksi / VAF / Penganggaran Kos). If the AI instead wrote
-    // a long free-text proposal with no payload and no headings, treat it as an
-    // off-task essay and silently re-ask for the tables — but only once, to avoid
-    // an infinite loop if the AI keeps misbehaving.
-    const looksLikeTables = /(^|\n)##\s/.test(visible) || /\n\s*\|[\s:|-]+\|/.test(visible);
-    const isOffTaskEssay = !data.payload && visible.length > 280 && !looksLikeTables;
-    if (isOffTaskEssay && !window.aiEssayRetryDone) {
-      window.aiEssayRetryDone = true;
-      addAIBubble('⚠ AI memberi penerangan, bukan jadual. Sedang meminta AI jana jadual Kos FPA...');
-      setTimeout(() => {
-        if (window.aiRedirectToGenerate) window.aiRedirectToGenerate();
-      }, 800);
-      return;
-    }
+    // NOTE: the old "essay detection" auto-redirect was removed. The backend AI
+    // now decides intent itself (A answer / B generate / C add-on / D off-topic):
+    // if it means to generate, it returns a JSON payload; otherwise a prose reply
+    // is the CORRECT answer (a question, an add-on clarification, or a redirect).
+    // We therefore trust the reply and no longer force tables when it's prose.
 
     if (data.payload && aiSkippedTables) {
       // AI gave us valid JSON but no tables — auto re-ask for the tables silently.

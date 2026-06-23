@@ -670,7 +670,7 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
                    <button class="action-btn" onclick="clearRowData('data', ${id})">🧹</button>`;
 
             return `
-                <tr id="row-data-${id}" class="${viewModeCls}">
+                <tr id="row-data-${id}" class="${viewModeCls} ${d._aiAdded ? 'ai-added-row' : ''}">
                     <td><div class="input-valid-wrapper"><input type="text" id="entiti-data-${id}" class="form-control" placeholder="Entiti Baru" value="${escapeHtml(d.entiti)}"></div></td>
                     <td><select id="aggregat-data-${id}" class="form-control">${aggHtml}</select></td>
                     <td>
@@ -730,7 +730,7 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
                    <button class="action-btn" onclick="clearRowData('trans', ${id})">🧹</button>`;
 
             return `
-                <tr id="row-trans-${id}" class="${viewModeCls}">
+                <tr id="row-trans-${id}" class="${viewModeCls} ${d._aiAdded ? 'ai-added-row' : ''}">
                     <td><div class="input-valid-wrapper"><input type="text" id="makro-trans-${id}" class="form-control" placeholder="Proses Makro" value="${escapeHtml(d.makro)}"></div></td>
                     <td><div class="input-valid-wrapper"><input type="text" id="general-trans-${id}" class="form-control" placeholder="Proses General" value="${escapeHtml(d.general)}"></div></td>
                     <td><select id="aggregat-trans-${id}" class="form-control">${aggHtml}</select></td>
@@ -863,7 +863,7 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
         function buildPengurusanRowHtml(id, d = { perkara: '', harga: 0, kuantiti: 1, checked: false, saved: false }) {
             const viewModeCls = d.saved ? 'view-mode' : '';
             return `
-                <tr id="row-pengurusan-${id}" class="${viewModeCls}">
+                <tr id="row-pengurusan-${id}" class="${viewModeCls} ${d._aiAdded ? 'ai-added-row' : ''}">
                     <td><input type="checkbox" id="chk-pengurusan-${id}" ${d.checked ? 'checked' : ''}></td>
                     <td><input type="text" class="form-control" id="perkara-pengurusan-${id}" value="${escapeHtml(d.perkara)}" placeholder="Nama Perkara"></td>
                     <td><input type="number" class="form-control" id="harga-pengurusan-${id}" value="${d.harga || 0}" step="0.01" oninput="calcPengurusan()" style="text-align: center; font-weight: 600;"></td>
@@ -998,7 +998,7 @@ Jawab dalam Bahasa Malaysia ringkas dan teratur (gunakan senarai bernombor jika 
             const btnIcon = d.saved ? '📝' : '💾';
 
             return `
-                <tr id="row-perkakasan-${id}" class="${viewModeCls}">
+                <tr id="row-perkakasan-${id}" class="${viewModeCls} ${d._aiAdded ? 'ai-added-row' : ''}">
                     <td class="perkakasan-index" style="text-align: center; color: #64748b; font-weight: 500;">${id}</td>
                     <td>
                         <div class="input-valid-wrapper">

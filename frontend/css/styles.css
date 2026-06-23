@@ -1491,6 +1491,26 @@
   100% { background: transparent; }
 }
 .ai-row-filled { animation: rowBlink 1.1s ease forwards; }
+
+/* Persistent highlight for rows the AI just ADDED via an add-on/update, so the
+   user can spot what was inserted. Green = newly added. */
+.ai-added-row > td {
+  background: rgba(16,185,129,0.12) !important;
+}
+.ai-added-row > td:first-child {
+  border-left: 3px solid #10b981;
+  position: relative;
+}
+.ai-added-row > td:first-child::after {
+  content: '✦ Baharu';
+  position: absolute;
+  top: 2px; left: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #059669;
+  letter-spacing: .02em;
+  pointer-events: none;
+}
 .form-control.ai-set {
   border-color: #34c759 !important;
   background: rgba(52,199,89,.06) !important;
