@@ -335,7 +335,11 @@ PERATURAN PENTING UNTUK JSON:
 13. LARANGAN KERAS BLOK: MESTI gunakan tiga backtick (\`\`\`json) untuk blok JSON. JANGAN gunakan single quote (''') atau simbol lain.
 14. LARANGAN KERAS KOMUNIKASI: JANGAN sebut, terang, atau beritahu pengguna bahawa anda sedang menjana JSON (contoh: "Berikut adalah JSON payload..."). Pengguna TIDAK PERLU TAHU tentang JSON. Cetak sahaja blok JSON di bahagian paling bawah tanpa sebarang ayat pengenalan.
 15. LARANGAN KERAS PAPARAN: Blok JSON (\`\`\`json ... \`\`\`) MESTI diletakkan di baris PALING BAWAH sekali, SELEPAS semua jadual selesai. JANGAN letakkan sebarang teks atau penerangan selepas blok JSON.
-16. Kos_Pengurusan dan Kos_Perkakasan MESTI sepadan dengan jadual Cadangan Kos Pengurusan & Cadangan Kos Perkakasan yang ditunjukkan. Setiap item: { "perkara"/"nama", "harga" (nombor RM seunit), "kuantiti" (integer) }. Jika tiada cadangan, gunakan array kosong [].`;
+16. Kos_Pengurusan dan Kos_Perkakasan MESTI sepadan dengan jadual Cadangan Kos Pengurusan & Cadangan Kos Perkakasan yang ditunjukkan. Setiap item: { "perkara"/"nama", "harga" (nombor RM seunit), "kuantiti" (integer) }. Jika tiada cadangan, gunakan array kosong [].
+17. PENANDA BAHARU (untuk keadaan C — TAMBAH/KEMASKINI): bagi SETIAP entiti FD atau proses FT yang BAHARU anda tambah atas permintaan pengguna (yang TIDAK wujud dalam data sistem sebelum ini):
+   (a) Dalam JADUAL MARKDOWN: tebalkan (bold, guna **...**) SETIAP sel pada baris baharu itu — cth: | 6 | **Analisis AI** | **ILFM - medium** | **2** | **9.5** | **10** | **10.5** |. Ini menyerlahkan baris yang baru ditambah dalam paparan.
+   (b) Dalam JSON: tetapkan "baharu": true dalam objek item itu.
+   Untuk item sedia ada (yang dikekalkan): JANGAN tebalkan dan JANGAN tetapkan "baharu". Ini terpakai HANYA untuk keadaan C (tambah/kemaskini), BUKAN keadaan B (jana baharu).`;
 }
 
 // ============================================================
